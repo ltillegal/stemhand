@@ -1,4 +1,7 @@
 #include "denoisecontroller.h"
+#include "engine/stemmixer.h"
+#include "engine/wavreader.h"
+#include "engine/wavwriter.h"
 #include "modelstore.h"
 #include "registry.h"
 #include "updatecontroller.h"
@@ -18,6 +21,7 @@ class ControllersTest : public QObject
 
 private slots:
     void denoisesVoice();
+    void mixesStems();
     void installsFromRegistry();
 };
 
@@ -48,6 +52,88 @@ void ControllersTest::denoisesVoice()
     QVERIFY(QFileInfo(output).size() > 4096);
     QVERIFY(!controller.busy());
     QVERIFY(controller.message().contains(QStringLiteral("realtime")));
+}
+
+void ControllersTest::mixesStems()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const int rate = 44100;
+    const qint64 frames = rate; // one second
+    const QVector<double> levels{0.1, 0.2, 0.05, 0.0};
+
+    QStringList paths;
+    for (int i = 0; i < levels.size(); ++i) {
+        const QString path = directory.path() + QStringLiteral("/stem%1.wav").arg(i);
+        WavWriter writer;
+        QString error;
+        QVERIFY2(writer.open(path, 2, rate, frames, &error), qPrintable(error));
+        QVector<float> buffer(static_cast<int>(frames) * 2);
+        for (int s = 0; s < buffer.size(); ++s)
+            buffer[s] = static_cast<float>(levels.at(i));
+        QVERIFY2(writer.write(buffer.constData(), frames, &error), qPrintable(error));
+        writer.close();
+        paths.append(path);
+    }
+
+    // QVERIFY/QCOMPARE expand to `return;`, so this helper reports through its
+    // return value and the caller does the asserting.
+    auto renderAndRead = [&](const QVector<StemState> &states, const QString &name,
+                             QVector<float> *out, double *gainOut) -> bool {
+        const QString output = directory.path() + QLatin1Char('/') + name;
+        QString error;
+        double gain = 1.0;
+        double seconds = 0.0;
+        if (!StemMixer::render(paths, states, output, &error, &gain, &seconds))
+            return false;
+        if (gainOut)
+            *gainOut = gain;
+        WavReader reader;
+        if (!reader.open(output, &error))
+            return false;
+        out->resize(static_cast<int>(frames) * 2);
+        qint64 got = 0;
+        return reader.read(frames, out->data(), &got, &error) && got == frames;
+    };
+
+    QVector<StemState> states(4);
+
+    // All audible at unity: the sum, scaled only if it would clip.
+    QVector<float> mixed;
+    QVERIFY(renderAndRead(states, QStringLiteral("sum.wav"), &mixed, nullptr));
+    QCOMPARE(mixed.size(), static_cast<int>(frames) * 2);
+    QVERIFY(std::fabs(mixed.at(200) - 0.35f) < 1e-3f);
+
+    // Mute removes one source.
+    states[0].muted = true;
+    QVERIFY(renderAndRead(states, QStringLiteral("mute.wav"), &mixed, nullptr));
+    QVERIFY(std::fabs(mixed.at(200) - 0.25f) < 1e-3f);
+
+    // Solo wins over everything else.
+    states[0].muted = false;
+    states[1].solo = true;
+    QVERIFY(renderAndRead(states, QStringLiteral("solo.wav"), &mixed, nullptr));
+    QVERIFY(std::fabs(mixed.at(200) - 0.2f) < 1e-3f);
+
+    // -6 dB halves the amplitude.
+    states[1].solo = false;
+    states[0].gainDb = -6.0f;
+    states[1].muted = true;
+    states[2].muted = true;
+    QVERIFY(renderAndRead(states, QStringLiteral("gain.wav"), &mixed, nullptr));
+    QVERIFY(std::fabs(mixed.at(200) - 0.1f * 0.501187f) < 1e-3f);
+
+    // A hot mix is scaled down instead of clipped.
+    states[0].gainDb = 12.0f;
+    states[1].gainDb = 12.0f;
+    states[2].gainDb = 12.0f;
+    states[1].muted = false;
+    states[2].muted = false;
+    double gain = 1.0;
+    QVERIFY(renderAndRead(states, QStringLiteral("hot.wav"), &mixed, &gain));
+    QVERIFY(gain < 1.0);
+    QVERIFY(std::fabs(mixed.at(200) - 0.99f) < 2e-3f);
 }
 
 void ControllersTest::installsFromRegistry()

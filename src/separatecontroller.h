@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/stemmixer.h"
+
 #include <QObject>
 #include <QStringList>
 #include <QUrl>
@@ -31,6 +33,11 @@ public:
     bool hasStemModel() const;
 
     Q_INVOKABLE void run(const QUrl &input);
+    Q_INVOKABLE void setGain(int index, double decibels);
+    Q_INVOKABLE void toggleMute(int index);
+    Q_INVOKABLE void toggleSolo(int index);
+    Q_INVOKABLE QString suggestedMixName() const;
+    Q_INVOKABLE void exportMix(const QUrl &target);
     // Shows an existing <name>_stems folder when a file with stems is opened.
     Q_INVOKABLE void discover(const QUrl &input);
     Q_INVOKABLE void openStemsFolder() const;
@@ -45,6 +52,7 @@ signals:
     void finished(const QString &folder);
 
 private:
+    void rebuildStems();
     void setBusy(bool busy);
     void setMessage(const QString &message);
     void setError(const QString &error);
@@ -54,6 +62,8 @@ private:
     QString m_message;
     QString m_error;
     QVariantList m_stems;
+    QStringList m_paths;
+    QVector<StemState> m_states;
     QString m_folder;
 };
 

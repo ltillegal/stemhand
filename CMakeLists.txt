@@ -45,6 +45,8 @@ set(STEMHAND_ENGINE_SOURCES
     src/engine/gtcrn.cpp
     src/engine/htdemucs.cpp
     src/engine/wavwriter.cpp
+    src/engine/wavreader.cpp
+    src/engine/stemmixer.cpp
 )
 
 if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
@@ -127,6 +129,9 @@ if(Qt6Test_FOUND)
         src/engine/audioio.cpp
         src/engine/fft.cpp
         src/engine/gtcrn.cpp
+        src/engine/wavwriter.cpp
+        src/engine/wavreader.cpp
+        src/engine/stemmixer.cpp
     )
     target_include_directories(stemhand-tests PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}")
     target_compile_definitions(stemhand-tests PRIVATE STEMHAND_MODEL_ENGINE_ABI=1)

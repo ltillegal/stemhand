@@ -67,6 +67,15 @@ ApplicationWindow {
         onAccepted: store.importFolder(selectedFolder)
     }
 
+    FileDialog {
+        id: exportDialog
+        title: qsTr("Export the mix")
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "wav"
+        currentFile: separate.stems.length > 0 ? "file://" + separate.suggestedMixName() : ""
+        onAccepted: separate.exportMix(selectedFile)
+    }
+
     DropArea {
         anchors.fill: parent
         onDropped: (drop) => {
@@ -364,40 +373,122 @@ ApplicationWindow {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: visible ? 40 : 0
+                    Layout.preferredHeight: visible ? 24 + separate.stems.length * 26 + 14 : 0
                     visible: separate.stems.length > 0
                     color: "transparent"
 
-                    RowLayout {
+                    ColumnLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 26
                         anchors.rightMargin: 26
-                        spacing: 4
+                        anchors.topMargin: 6
+                        anchors.bottomMargin: 8
+                        spacing: 2
 
-                        Text {
-                            text: qsTr("STEMS")
-                            color: pal.dim
-                            font.pixelSize: 9
-                            font.letterSpacing: 1.6
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+
+                            Text {
+                                text: qsTr("STEMS")
+                                color: pal.dim
+                                font.pixelSize: 9
+                                font.letterSpacing: 1.6
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Button {
+                                text: qsTr("Export mix")
+                                flat: true
+                                font.pixelSize: 11
+                                highlighted: true
+                                enabled: !separate.busy && separate.stems.length > 0
+                                onClicked: exportDialog.open()
+                            }
+
+                            Button {
+                                text: qsTr("Folder")
+                                flat: true
+                                font.pixelSize: 11
+                                onClicked: separate.openStemsFolder()
+                            }
                         }
 
                         Repeater {
                             model: separate.stems
-                            Button {
-                                text: modelData.name
-                                flat: true
-                                font.pixelSize: 11
-                                onClicked: audio.load(modelData.url)
+
+                            delegate: RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+
+                                Text {
+                                    text: modelData.name
+                                    color: pal.text
+                                    font.pixelSize: 11
+                                    Layout.preferredWidth: 56
+                                }
+
+                                Rectangle {
+                                    width: 20
+                                    height: 18
+                                    radius: 3
+                                    color: modelData.muted ? pal.warn : "transparent"
+                                    border.width: 1
+                                    border.color: modelData.muted ? pal.warn : pal.line
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: qsTr("M")
+                                        color: modelData.muted ? "#0a0b0e" : pal.dim
+                                        font.pixelSize: 9
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: separate.toggleMute(index)
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: 20
+                                    height: 18
+                                    radius: 3
+                                    color: modelData.solo ? pal.accent : "transparent"
+                                    border.width: 1
+                                    border.color: modelData.solo ? pal.accent : pal.line
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: qsTr("S")
+                                        color: modelData.solo ? "#0a0b0e" : pal.dim
+                                        font.pixelSize: 9
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: separate.toggleSolo(index)
+                                    }
+                                }
+
+                                Slider {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 18
+                                    from: -24
+                                    to: 12
+                                    stepSize: 1
+                                    value: modelData.gain
+                                    onMoved: separate.setGain(index, value)
+                                }
+
+                                Text {
+                                    text: (modelData.gain > 0 ? "+" : "") + modelData.gain.toFixed(0) + " dB"
+                                    color: pal.dim
+                                    font.pixelSize: 9
+                                    horizontalAlignment: Text.AlignRight
+                                    Layout.preferredWidth: 46
+                                }
                             }
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Button {
-                            text: qsTr("Stems folder")
-                            flat: true
-                            font.pixelSize: 11
-                            onClicked: separate.openStemsFolder()
                         }
                     }
                 }

@@ -2,6 +2,7 @@
 
 #include "engine/audioio.h"
 #include "engine/htdemucs.h"
+#include "engine/stemmixer.h"
 #include "modelstore.h"
 
 #include <QDesktopServices>
@@ -10,6 +11,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QFutureWatcher>
 #include <QThread>
 #include <QVariantMap>
@@ -112,6 +114,99 @@ void SeparateController::openStemsFolder() const
     QDesktopServices::openUrl(QUrl::fromLocalFile(m_folder));
 }
 
+void SeparateController::rebuildStems()
+{
+    m_stems.clear();
+    for (int i = 0; i < m_paths.size(); ++i) {
+        const StemState &state = m_states.at(i);
+        QVariantMap stem;
+        stem.insert(QStringLiteral("name"),
+                    QFileInfo(m_paths.at(i)).completeBaseName().section(QLatin1Char('_'), -1));
+        stem.insert(QStringLiteral("path"), m_paths.at(i));
+        stem.insert(QStringLiteral("url"), QUrl::fromLocalFile(m_paths.at(i)));
+        stem.insert(QStringLiteral("gain"), state.gainDb);
+        stem.insert(QStringLiteral("muted"), state.muted);
+        stem.insert(QStringLiteral("solo"), state.solo);
+        m_stems.append(stem);
+    }
+    emit stemsChanged();
+}
+
+void SeparateController::setGain(int index, double decibels)
+{
+    if (index < 0 || index >= m_states.size())
+        return;
+    m_states[index].gainDb = static_cast<float>(decibels);
+    rebuildStems();
+}
+
+void SeparateController::toggleMute(int index)
+{
+    if (index < 0 || index >= m_states.size())
+        return;
+    m_states[index].muted = !m_states[index].muted;
+    rebuildStems();
+}
+
+void SeparateController::toggleSolo(int index)
+{
+    if (index < 0 || index >= m_states.size())
+        return;
+    m_states[index].solo = !m_states[index].solo;
+    rebuildStems();
+}
+
+QString SeparateController::suggestedMixName() const
+{
+    if (m_paths.isEmpty())
+        return QString();
+    QString base = QFileInfo(m_paths.first()).completeBaseName();
+    base.remove(QRegularExpression(QStringLiteral("_(drums|bass|other|vocals)$")));
+    return QFileInfo(m_paths.first()).absolutePath() + QLatin1Char('/') + base
+        + QStringLiteral("_mix.wav");
+}
+
+void SeparateController::exportMix(const QUrl &target)
+{
+    if (m_busy || m_paths.isEmpty())
+        return;
+
+    const QString output = target.toLocalFile();
+    if (output.isEmpty()) {
+        setError(tr("Choose a file to write the mix to."));
+        return;
+    }
+
+    const QStringList paths = m_paths;
+    const QVector<StemState> states = m_states;
+
+    setError(QString());
+    setMessage(tr("Rendering the mix…"));
+    setBusy(true);
+
+    auto *watcher = new QFutureWatcher<QString>(this);
+    connect(watcher, &QFutureWatcher<QString>::finished, this, [this, watcher, output] {
+        const QString error = watcher->result();
+        watcher->deleteLater();
+        setBusy(false);
+        if (!error.isEmpty()) {
+            setMessage(QString());
+            setError(error);
+            return;
+        }
+        setMessage(tr("Mix written to %1").arg(QFileInfo(output).fileName()));
+    });
+
+    watcher->setFuture(QtConcurrent::run([paths, states, output]() -> QString {
+        QString error;
+        double gain = 1.0;
+        double seconds = 0.0;
+        if (!StemMixer::render(paths, states, output, &error, &gain, &seconds))
+            return error;
+        return QString();
+    }));
+}
+
 void SeparateController::discover(const QUrl &input)
 {
     const QString source = input.toLocalFile();
@@ -143,16 +238,9 @@ void SeparateController::discover(const QUrl &input)
     }
 
     m_folder = folder;
-    m_stems.clear();
-    for (const QString &path : paths) {
-        QVariantMap stem;
-        stem.insert(QStringLiteral("name"),
-                    QFileInfo(path).completeBaseName().section(QLatin1Char('_'), -1));
-        stem.insert(QStringLiteral("path"), path);
-        stem.insert(QStringLiteral("url"), QUrl::fromLocalFile(path));
-        m_stems.append(stem);
-    }
-    emit stemsChanged();
+    m_paths = paths;
+    m_states = QVector<StemState>(paths.size());
+    rebuildStems();
 }
 
 void SeparateController::run(const QUrl &input)
@@ -207,16 +295,9 @@ void SeparateController::run(const QUrl &input)
         }
 
         m_folder = result.folder;
-        m_stems.clear();
-        for (const QString &path : result.stems) {
-            QVariantMap stem;
-            stem.insert(QStringLiteral("name"),
-                        QFileInfo(path).completeBaseName().section(QLatin1Char('_'), -1));
-            stem.insert(QStringLiteral("path"), path);
-            stem.insert(QStringLiteral("url"), QUrl::fromLocalFile(path));
-            m_stems.append(stem);
-        }
-        emit stemsChanged();
+        m_paths = result.stems;
+        m_states = QVector<StemState>(result.stems.size());
+        rebuildStems();
 
         setMessage(tr("Separated %1 s in %2 s (%3× realtime) → %4")
                        .arg(result.audioSeconds, 0, 'f', 1)
