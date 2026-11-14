@@ -97,6 +97,11 @@ int main(int argc, char *argv[])
     QString denoiseOut;
     QString separateIn;
     QString separateOut;
+    QString mixDir;
+    QString mixOut;
+    QStringList muted;
+    QStringList soloed;
+    QList<QPair<QString, double>> gains;
     QString modelRef;
     QString updateIndex;
     QString preferRef;
@@ -127,6 +132,18 @@ int main(int argc, char *argv[])
         } else if (arg == QLatin1String("--separate") && i + 2 < raw.size()) {
             separateIn = raw.at(++i);
             separateOut = raw.at(++i);
+        } else if (arg == QLatin1String("--mix") && i + 2 < raw.size()) {
+            mixDir = raw.at(++i);
+            mixOut = raw.at(++i);
+        } else if (arg == QLatin1String("--mute") && i + 1 < raw.size()) {
+            muted.append(raw.at(++i));
+        } else if (arg == QLatin1String("--solo") && i + 1 < raw.size()) {
+            soloed.append(raw.at(++i));
+        } else if (arg == QLatin1String("--gain") && i + 1 < raw.size()) {
+            const QString spec = raw.at(++i);
+            const int equal = spec.indexOf(QLatin1Char('='));
+            if (equal > 0)
+                gains.append({spec.left(equal), spec.mid(equal + 1).toDouble()});
         } else if (arg == QLatin1String("--model") && i + 1 < raw.size()) {
             modelRef = raw.at(++i);
         } else if (arg == QLatin1String("--threads") && i + 1 < raw.size()) {
@@ -157,6 +174,7 @@ int main(int argc, char *argv[])
     // Scan mode has to work from a terminal and from agents with no display,
     // so it never constructs a GUI application (and never touches the session).
     const bool headless = scan || !denoiseIn.isEmpty() || !separateIn.isEmpty()
+        || !mixDir.isEmpty()
         || !updateIndex.isEmpty()
         || !preferRef.isEmpty() || !releaseId.isEmpty() || listVersions;
 
@@ -185,6 +203,16 @@ int main(int argc, char *argv[])
             request.storeRoot = root;
             request.threads = threads;
             return runSeparate(request);
+        }
+
+        if (!mixDir.isEmpty()) {
+            MixRequest request;
+            request.stemsDir = mixDir;
+            request.output = mixOut;
+            request.muted = muted;
+            request.soloed = soloed;
+            request.gains = gains;
+            return runMix(request);
         }
 
         if (!updateIndex.isEmpty()) {

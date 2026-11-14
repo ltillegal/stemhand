@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 #include <QUrl>
 
 namespace stemhand {
@@ -26,6 +27,17 @@ struct SeparateRequest {
 
 // Headless four-stem separation path.
 int runSeparate(const SeparateRequest &request);
+
+struct MixRequest {
+    QString stemsDir;
+    QString output;
+    QStringList muted;
+    QStringList soloed;
+    QList<QPair<QString, double>> gains;
+};
+
+// Renders a mix from a folder of stems, honouring mute/solo/gain.
+int runMix(const MixRequest &request);
 
 struct UpdateRequest {
     QUrl indexUrl;

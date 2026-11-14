@@ -8,6 +8,12 @@ sign="$root/build/stemhand-sign"
 tmp="$root/build/test-models"
 
 fail=0
+
+# Mean volume in dB as reported by ffmpeg's volumedetect; empty if unreadable.
+mean_volume() {
+    ffmpeg -hide_banner -nostats -i "$1" -af volumedetect -f null - 2>&1 \
+        | sed -n 's/.*mean_volume: \([-0-9.]*\) dB.*/\1/p' | tail -1
+}
 check() {
     local label="$1" expected="$2" got="$3"
     if [ "$expected" = "$got" ]; then
@@ -85,10 +91,9 @@ if [ -f "$demucs" ] && [ -f "$root/build/testmix/mix.wav" ]; then
 
     quiet=0
     for f in "$stems"/*.wav; do
-        level="$(ffmpeg -hide_banner -nostats -i "$f" -af volumedetect -f null - 2>&1 \
-                 | grep mean_volume | grep -o '[-0-9.]* dB' | head -1 | cut -d' ' -f1)"
+        level="$(mean_volume "$f")"
         # -91 dB is digital silence; anything above -60 dB carries signal.
-        if [ -z "$level" ] || [ "$(printf '%.0f' "$level")" -lt -60 ]; then
+        if [ -z "$level" ] || [ "$(awk -v v="$level" 'BEGIN { print (v < -60) ? 1 : 0 }')" -eq 1 ]; then
             quiet=$((quiet + 1))
         fi
     done
@@ -98,6 +103,21 @@ if [ -f "$demucs" ] && [ -f "$root/build/testmix/mix.wav" ]; then
     check "separation is deterministic" \
         "$(sha256sum "$stems/mix3_vocals.wav" | cut -d' ' -f1)" \
         "$(sha256sum "$root/build/test-separate-b/mix3_vocals.wav" | cut -d' ' -f1)"
+fi
+
+# Mixer: solo must isolate a stem sample-for-sample, mute-all must be silence.
+stemsdir="$root/build/testmix/mix3_stems"
+if [ -d "$stemsdir" ]; then
+    "$bin" --mix "$stemsdir" "$root/build/test-mix-solo.wav" --solo vocals > /dev/null 2>&1
+    "$bin" --mix "$stemsdir" "$root/build/test-mix-mute.wav" \
+        --mute drums --mute bass --mute other --mute vocals > /dev/null 2>&1
+
+    check "solo isolates the stem" \
+        "$(sha256sum "$stemsdir/mix3_vocals.wav" | cut -d' ' -f1)" \
+        "$(sha256sum "$root/build/test-mix-solo.wav" | cut -d' ' -f1)"
+
+    check "muting everything is silenced" "-91.0" \
+        "$(mean_volume "$root/build/test-mix-mute.wav")"
 fi
 
 # Registry checks against the local file:// fixture from make-registry.sh.

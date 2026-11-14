@@ -3,6 +3,7 @@
 #include "engine/audioio.h"
 #include "engine/gtcrn.h"
 #include "engine/htdemucs.h"
+#include "engine/stemmixer.h"
 #include "manifest.h"
 #include "modelstore.h"
 #include "registry.h"
@@ -226,6 +227,63 @@ int runSeparate(const SeparateRequest &request)
         std::printf("stem     %s/%s_%s.wav\n", qPrintable(request.outputDir), qPrintable(base),
                     qPrintable(stem));
     }
+    return 0;
+}
+
+int runMix(const MixRequest &request)
+{
+    if (request.stemsDir.isEmpty() || request.output.isEmpty()) {
+        std::fprintf(stderr, "stemhand --mix needs a stems directory and an output file\n");
+        return 64;
+    }
+
+    QDir dir(request.stemsDir);
+    if (!dir.exists()) {
+        std::fprintf(stderr, "no such directory: %s\n", qPrintable(request.stemsDir));
+        return 66;
+    }
+
+    // Keep a stable order (drums, bass, other, vocals) so mixing is
+    // reproducible regardless of directory enumeration.
+    const QStringList order = HtdemucsSeparator::stemNames();
+    QStringList paths;
+    QVector<StemState> states;
+    const QStringList files = dir.entryList({QStringLiteral("*.wav")}, QDir::Files, QDir::Name);
+    for (const QString &name : order) {
+        for (const QString &file : files) {
+            if (!file.endsWith(QLatin1Char('_') + name + QStringLiteral(".wav")))
+                continue;
+            StemState state;
+            if (request.muted.contains(name))
+                state.muted = true;
+            if (request.soloed.contains(name))
+                state.solo = true;
+            for (const auto &gain : request.gains) {
+                if (gain.first == name)
+                    state.gainDb = static_cast<float>(gain.second);
+            }
+            paths.append(dir.filePath(file));
+            states.append(state);
+        }
+    }
+
+    if (paths.isEmpty()) {
+        std::fprintf(stderr, "no stems in %s (expected *_drums.wav and friends)\n",
+                     qPrintable(request.stemsDir));
+        return 66;
+    }
+
+    QString error;
+    double gain = 1.0;
+    double seconds = 0.0;
+    if (!StemMixer::render(paths, states, request.output, &error, &gain, &seconds)) {
+        std::fprintf(stderr, "%s\n", qPrintable(error));
+        return 1;
+    }
+
+    std::printf("stems    %d\n", static_cast<int>(paths.size()));
+    std::printf("output   %s  %.2fs\n", qPrintable(request.output), seconds);
+    std::printf("gain     %.4f%s\n", gain, gain < 1.0 ? " (peak limiting)" : "");
     return 0;
 }
 

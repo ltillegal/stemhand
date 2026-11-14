@@ -145,6 +145,8 @@ curl -L -o gtcrn_simple.onnx \
 ```bash
 ./build/stemhand --denoise interview.wav clean.wav --root ~/.local/share/stemhand/models
 ./build/stemhand --separate song.mp3 stems/ --root ~/.local/share/stemhand/models
+./build/stemhand --mix stems/ mix.wav --solo vocals --gain vocals=3
+./build/stemhand --mix stems/ mix.wav --mute drums
 ./build/stemhand --scan --json
 ```
 
@@ -178,7 +180,7 @@ curl -L -o gtcrn_simple.onnx \
 ## Тесты
 
 ```bash
-./scripts/test.sh        # 22 проверки: доверие, подмена, денойзинг, стемы, обновления
+./scripts/test.sh        # 24 проверки: доверие, подмена, денойзинг, стемы, микс, обновления
 cd build && ctest        # асинхронный путь через движок (Qt Test)
 ```
 
