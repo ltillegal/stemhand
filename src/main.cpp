@@ -1,4 +1,6 @@
 #include "audiofile.h"
+#include "cli.h"
+#include "denoisecontroller.h"
 #include "modelstore.h"
 #include "waveformitem.h"
 
@@ -89,6 +91,10 @@ int main(int argc, char *argv[])
     QString root;
     QString screenshot;
     QString openPath;
+    QString denoiseIn;
+    QString denoiseOut;
+    QString modelRef;
+    int threads = 0;
 
     for (int i = 1; i < raw.size(); ++i) {
         const QString &arg = raw.at(i);
@@ -96,6 +102,13 @@ int main(int argc, char *argv[])
             scan = true;
         } else if (arg == QLatin1String("--json")) {
             asJson = true;
+        } else if (arg == QLatin1String("--denoise") && i + 2 < raw.size()) {
+            denoiseIn = raw.at(++i);
+            denoiseOut = raw.at(++i);
+        } else if (arg == QLatin1String("--model") && i + 1 < raw.size()) {
+            modelRef = raw.at(++i);
+        } else if (arg == QLatin1String("--threads") && i + 1 < raw.size()) {
+            threads = raw.at(++i).toInt();
         } else if (arg == QLatin1String("--root") && i + 1 < raw.size()) {
             root = raw.at(++i);
         } else if (arg == QLatin1String("--screenshot") && i + 1 < raw.size()) {
@@ -108,6 +121,7 @@ int main(int argc, char *argv[])
                 "photone %s\n\n"
                 "  photone [file]            open the app\n"
                 "  photone --scan [--json]   list the model store, exit 1 if a model is broken\n"
+                "  photone --denoise <in> <out> [--model <id|dir>] [--threads N]\n"
                 "  photone --root <dir>      use another model store\n",
                 PHOTONE_VERSION);
             return 0;
@@ -118,14 +132,23 @@ int main(int argc, char *argv[])
 
     // Scan mode has to work from a terminal and from agents with no display,
     // so it never constructs a GUI application (and never touches the session).
-    if (scan) {
+    if (scan || !denoiseIn.isEmpty()) {
         QCoreApplication app(argc, argv);
         QCoreApplication::setApplicationName(QStringLiteral("photone"));
         if (sodium_init() < 0) {
             std::fprintf(stderr, "photone: libsodium failed to initialise\n");
             return 1;
         }
-        return runScan(root, asJson);
+        if (scan)
+            return runScan(root, asJson);
+
+        DenoiseRequest request;
+        request.input = denoiseIn;
+        request.output = denoiseOut;
+        request.modelRef = modelRef;
+        request.storeRoot = root;
+        request.threads = threads;
+        return runDenoise(request);
     }
 
     QGuiApplication app(argc, argv);
@@ -144,12 +167,16 @@ int main(int argc, char *argv[])
     store.rescan();
 
     AudioFile audio;
+    DenoiseController denoise(&store);
+    QObject::connect(&denoise, &DenoiseController::finished, &audio,
+                     [&audio](const QString &path) { audio.load(QUrl::fromLocalFile(path)); });
 
     qmlRegisterType<WaveformItem>("Photone", 1, 0, "WaveformItem");
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("store"), &store);
     engine.rootContext()->setContextProperty(QStringLiteral("audio"), &audio);
+    engine.rootContext()->setContextProperty(QStringLiteral("denoise"), &denoise);
     engine.rootContext()->setContextProperty(QStringLiteral("appVersion"),
                                              QStringLiteral(PHOTONE_VERSION));
     engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));

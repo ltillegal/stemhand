@@ -60,6 +60,7 @@ std::optional<ModelManifest> ModelManifest::parse(const QByteArray &json, QStrin
     manifest.version = object.value(QStringLiteral("version")).toString().trimmed();
     manifest.name = object.value(QStringLiteral("name")).toString().trimmed();
     manifest.kind = object.value(QStringLiteral("kind")).toString().trimmed();
+    manifest.driver = object.value(QStringLiteral("driver")).toString().trimmed();
     manifest.engineAbi = object.value(QStringLiteral("engine_abi")).toInt(0);
     manifest.sampleRate = object.value(QStringLiteral("sample_rate")).toInt(0);
     manifest.channels = object.value(QStringLiteral("channels")).toInt(0);

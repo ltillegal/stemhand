@@ -46,6 +46,7 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+O"; onActivated: openDialog.open() }
     Shortcut { sequence: "R"; onActivated: store.rescan() }
     Shortcut { sequence: "I"; onActivated: importDialog.open() }
+    Shortcut { sequence: "D"; onActivated: denoise.run(audio.path) }
     Shortcut { sequence: "Q"; onActivated: Qt.quit() }
     Shortcut { sequence: "Ctrl+Q"; onActivated: Qt.quit() }
 
@@ -115,6 +116,14 @@ ApplicationWindow {
                 }
 
                 Item { Layout.fillWidth: true }
+
+                Button {
+                    text: qsTr("Denoise voice")
+                    flat: true
+                    visible: audio.hasAudio
+                    enabled: denoise.hasVoiceModel && !denoise.busy && !audio.loading
+                    onClicked: denoise.run(audio.path)
+                }
 
                 Button {
                     text: qsTr("Open audio")
@@ -334,8 +343,27 @@ ApplicationWindow {
 
                 Rectangle {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: visible ? 26 : 0
+                    visible: denoise.message.length > 0 && denoise.error.length === 0
+                    color: denoise.busy ? "#1b1a10" : "#0f1a17"
+
+                    Text {
+                        anchors.fill: parent
+                        anchors.leftMargin: 26
+                        anchors.rightMargin: 26
+                        verticalAlignment: Text.AlignVCenter
+                        text: denoise.message
+                        color: denoise.busy ? pal.warn : pal.ok
+                        font.pixelSize: 11
+                        elide: Text.ElideRight
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
                     Layout.preferredHeight: visible ? 30 : 0
-                    visible: audio.error.length > 0 || store.lastError.length > 0
+                    visible: denoise.error.length > 0 || audio.error.length > 0
+                              || store.lastError.length > 0
                     color: "#2a1416"
 
                     Text {
@@ -343,7 +371,8 @@ ApplicationWindow {
                         anchors.leftMargin: 26
                         anchors.rightMargin: 26
                         verticalAlignment: Text.AlignVCenter
-                        text: audio.error.length > 0 ? audio.error : store.lastError
+                        text: denoise.error.length > 0 ? denoise.error
+                              : (audio.error.length > 0 ? audio.error : store.lastError)
                         color: pal.bad
                         font.pixelSize: 11
                         elide: Text.ElideRight
@@ -369,7 +398,7 @@ ApplicationWindow {
                         Item { Layout.fillWidth: true }
 
                         Text {
-                            text: qsTr("O open · R rescan · I import · Q quit")
+                            text: qsTr("O open · D denoise · R rescan · I import · Q quit")
                             color: pal.dim
                             font.pixelSize: 10
                         }

@@ -1,3 +1,7 @@
 build/
 .dev-keys/
 *.user
+.venv/
+.cache/
+models-dev/
+third_party/

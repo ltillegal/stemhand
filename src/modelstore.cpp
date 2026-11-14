@@ -86,6 +86,7 @@ QVariantList ModelStore::models() const
         map.insert(QStringLiteral("version"), entry.manifest.version);
         map.insert(QStringLiteral("name"), entry.manifest.name);
         map.insert(QStringLiteral("kind"), entry.manifest.kind);
+        map.insert(QStringLiteral("driver"), entry.manifest.driver);
         map.insert(QStringLiteral("kindLabel"), kindLabel(entry.manifest.kind));
         map.insert(QStringLiteral("stems"), entry.manifest.stems);
         map.insert(QStringLiteral("sampleRate"), entry.manifest.sampleRate);
@@ -96,6 +97,10 @@ QVariantList ModelStore::models() const
         map.insert(QStringLiteral("bytes"), entry.bytes);
         map.insert(QStringLiteral("sizeLabel"), humanBytes(entry.bytes));
         map.insert(QStringLiteral("dir"), entry.dir);
+        if (!entry.manifest.files.isEmpty()) {
+            map.insert(QStringLiteral("weights"),
+                       entry.dir + QLatin1Char('/') + entry.manifest.files.first().path);
+        }
         map.insert(QStringLiteral("signed"), entry.signaturePresent);
         list.append(map);
     }

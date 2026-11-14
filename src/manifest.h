@@ -29,6 +29,7 @@ struct ModelManifest {
     QString version; // semver, e.g. "3.0.0"
     QString name;    // display name
     QString kind;    // music4 | drums5 | voice | denoise | enhance
+    QString driver;  // engine contract: "gtcrn" | "htdemucs" | ...
     int engineAbi = 0;
     int sampleRate = 0;
     int channels = 0;

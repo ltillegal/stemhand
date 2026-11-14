@@ -12,7 +12,7 @@ if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "" FORCE)
 endif()
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Network)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Network Concurrent)
 qt_standard_project_setup()
 
 find_package(PkgConfig REQUIRED)
@@ -27,6 +27,30 @@ file(READ "${CMAKE_CURRENT_SOURCE_DIR}/keys/dev.pub" PHOTONE_PINNED_KEY)
 string(STRIP "${PHOTONE_PINNED_KEY}" PHOTONE_PINNED_KEY)
 configure_file(cmake/pinned_key.h.in "${CMAKE_CURRENT_BINARY_DIR}/pinned_key.h" @ONLY)
 
+# ONNX Runtime is optional at configure time: the shell, the model store and
+# the CLI all build without it, and the denoise engine simply reports that it
+# is unavailable. Point ONNXRUNTIME_ROOT at an unpacked release (the repo's
+# third_party/ copy is the Linux dev default; on macOS use `brew --prefix
+# onnxruntime`).
+set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnxruntime-linux-x64-1.32.0"
+    CACHE PATH "ONNX Runtime root")
+find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h
+    HINTS "${ONNXRUNTIME_ROOT}/include" "${ONNXRUNTIME_ROOT}/Headers")
+find_library(ONNXRUNTIME_LIBRARY onnxruntime HINTS "${ONNXRUNTIME_ROOT}/lib")
+
+set(PHOTONE_ENGINE_SOURCES
+    src/cli.cpp
+    src/engine/audioio.cpp
+    src/engine/fft.cpp
+    src/engine/gtcrn.cpp
+)
+
+if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
+    message(STATUS "ONNX Runtime: ${ONNXRUNTIME_LIBRARY}")
+else()
+    message(WARNING "ONNX Runtime not found — the denoise engine will be stubbed")
+endif()
+
 qt_add_executable(photone
     src/main.cpp
     src/keys.cpp
@@ -34,6 +58,8 @@ qt_add_executable(photone
     src/modelstore.cpp
     src/audiofile.cpp
     src/waveformitem.cpp
+    src/denoisecontroller.cpp
+    ${PHOTONE_ENGINE_SOURCES}
 )
 
 target_include_directories(photone PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" src)
@@ -53,9 +79,15 @@ qt_add_resources(photone "qml"
 )
 
 target_link_libraries(photone PRIVATE
-    Qt6::Core Qt6::Gui Qt6::Quick Qt6::QuickControls2 Qt6::Network
+    Qt6::Core Qt6::Gui Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Concurrent
     PkgConfig::SODIUM
 )
+
+if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
+    target_compile_definitions(photone PRIVATE PHOTONE_HAVE_ONNXRUNTIME=1)
+    target_include_directories(photone PRIVATE "${ONNXRUNTIME_INCLUDE_DIR}")
+    target_link_libraries(photone PRIVATE "${ONNXRUNTIME_LIBRARY}")
+endif()
 
 if(APPLE)
     set_target_properties(photone PROPERTIES
@@ -74,3 +106,33 @@ target_compile_definitions(photone-sign PRIVATE PHOTONE_MODEL_ENGINE_ABI=1)
 target_link_libraries(photone-sign PRIVATE Qt6::Core PkgConfig::SODIUM)
 
 install(TARGETS photone BUNDLE DESTINATION . RUNTIME DESTINATION bin)
+
+# Tests need the same objects as the app, minus main.cpp and the QML layer.
+enable_testing()
+find_package(Qt6 6.5 QUIET COMPONENTS Test)
+if(Qt6Test_FOUND)
+    qt_add_executable(photone-tests
+        tests/denoise_test.cpp
+        src/manifest.cpp
+        src/keys.cpp
+        src/modelstore.cpp
+        src/denoisecontroller.cpp
+        src/engine/audioio.cpp
+        src/engine/fft.cpp
+        src/engine/gtcrn.cpp
+    )
+    target_include_directories(photone-tests PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}")
+    target_compile_definitions(photone-tests PRIVATE PHOTONE_MODEL_ENGINE_ABI=1)
+    target_link_libraries(photone-tests PRIVATE
+        Qt6::Core Qt6::Gui Qt6::Test Qt6::Concurrent PkgConfig::SODIUM
+    )
+    if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
+        target_compile_definitions(photone-tests PRIVATE PHOTONE_HAVE_ONNXRUNTIME=1)
+        target_include_directories(photone-tests PRIVATE "${ONNXRUNTIME_INCLUDE_DIR}")
+        target_link_libraries(photone-tests PRIVATE "${ONNXRUNTIME_LIBRARY}")
+    endif()
+    add_test(NAME denoise COMMAND photone-tests)
+    set_tests_properties(denoise PROPERTIES
+        ENVIRONMENT "PHOTONE_TEST_MODELS=${CMAKE_CURRENT_SOURCE_DIR}/build/models;PHOTONE_TEST_INPUT=${CMAKE_CURRENT_SOURCE_DIR}/models-dev/gtcrn/mix.wav"
+    )
+endif()

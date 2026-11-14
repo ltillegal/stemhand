@@ -50,6 +50,27 @@ check "sign tool rejects a modified manifest" 1 \
        cp "$tmp/m.json" "$tmp/denoise/deepfilternet3/3.0.0/manifest.json"
        "$sign" verify "$tmp/denoise/deepfilternet3/3.0.0" "$root/keys/dev.pub" > /dev/null 2>&1; echo $?)"
 
+# Engine checks, only when the dev model and its weights are actually present.
+input="$root/models-dev/gtcrn/mix.wav"
+voice="$root/build/models/denoise/gtcrn/1.0.0/gtcrn_simple.onnx"
+if [ -f "$input" ] && [ -f "$voice" ]; then
+    outdir="$root/build/test-denoise"
+    mkdir -p "$outdir"
+    "$bin" --denoise "$input" "$outdir/a.wav" --root "$root/build/models" > /dev/null 2>&1
+    "$bin" --denoise "$input" "$outdir/b.wav" --root "$root/build/models" > /dev/null 2>&1
+
+    check "denoise is deterministic" \
+        "$(sha256sum "$outdir/a.wav" | cut -d' ' -f1)" \
+        "$(sha256sum "$outdir/b.wav" | cut -d' ' -f1)"
+
+    check "denoise changed the signal" \
+        "different" \
+        "$([ "$(sha256sum "$outdir/a.wav" | cut -d' ' -f1)" != "$(sha256sum "$input" | cut -d' ' -f1)" ] && echo different || echo same)"
+
+    check "denoise writes a real wav" ">200000 bytes" \
+        "$([ "$(stat -c%s "$outdir/a.wav")" -gt 200000 ] && echo '>200000 bytes' || echo too-small)"
+fi
+
 rm -rf "$tmp"
 
 if [ "$fail" -ne 0 ]; then
