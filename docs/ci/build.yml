@@ -1,0 +1,68 @@
+# Kept here, not in .github/workflows, because pushing that path requires the
+# `workflow` OAuth scope, which the current gh token does not have. To enable:
+#
+#   gh auth refresh -s workflow
+#   git mv docs/ci/build.yml .github/workflows/build.yml
+#   git commit -m "Enable CI" && git push
+#
+name: build
+
+# Manual only: the macOS runner costs 10x minutes, and a private repository
+# should not spend them on every push. Run it from the Actions tab when a
+# change needs a real Apple Silicon check.
+on:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config libsodium-dev ffmpeg \
+            qt6-base-dev qt6-declarative-dev qt6-multimedia-dev \
+            libqt6svg6-dev libgl1-mesa-dev
+
+      - name: Configure
+        run: |
+          ./scripts/dev-keys.sh
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Model store and CLI checks
+        run: ./scripts/test.sh
+
+      - name: Controller tests
+        run: cd build && ctest --output-on-failure
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: |
+          brew install qt onnxruntime libsodium ffmpeg pkg-config cmake
+
+      - name: Configure
+        run: |
+          ./scripts/dev-keys.sh
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
+            -DONNXRUNTIME_ROOT="$(brew --prefix onnxruntime)"
+
+      - name: Build
+        run: cmake --build build -j"$(sysctl -n hw.ncpu)"
+
+      - name: Model store and CLI checks
+        run: ./scripts/test.sh
+
+      - name: Controller tests
+        run: cd build && ctest --output-on-failure
