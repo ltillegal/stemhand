@@ -12,7 +12,7 @@ if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "" FORCE)
 endif()
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Network Concurrent)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Network Concurrent Multimedia)
 qt_standard_project_setup()
 
 find_package(PkgConfig REQUIRED)
@@ -47,6 +47,7 @@ set(STEMHAND_ENGINE_SOURCES
     src/engine/wavwriter.cpp
     src/engine/wavreader.cpp
     src/engine/stemmixer.cpp
+    src/engine/stemplayer.cpp
 )
 
 if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
@@ -87,6 +88,7 @@ qt_add_resources(stemhand "qml"
 
 target_link_libraries(stemhand PRIVATE
     Qt6::Core Qt6::Gui Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Concurrent
+    Qt6::Multimedia
     PkgConfig::SODIUM
 )
 
@@ -134,11 +136,13 @@ if(Qt6Test_FOUND)
         src/engine/wavwriter.cpp
         src/engine/wavreader.cpp
         src/engine/stemmixer.cpp
+        src/engine/stemplayer.cpp
     )
     target_include_directories(stemhand-tests PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}")
     target_compile_definitions(stemhand-tests PRIVATE STEMHAND_MODEL_ENGINE_ABI=1)
     target_link_libraries(stemhand-tests PRIVATE
-        Qt6::Core Qt6::Gui Qt6::Network Qt6::Test Qt6::Concurrent PkgConfig::SODIUM
+        Qt6::Core Qt6::Gui Qt6::Network Qt6::Test Qt6::Concurrent Qt6::Multimedia
+        PkgConfig::SODIUM
     )
     if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
         target_compile_definitions(stemhand-tests PRIVATE STEMHAND_HAVE_ONNXRUNTIME=1)
@@ -147,6 +151,6 @@ if(Qt6Test_FOUND)
     endif()
     add_test(NAME controllers COMMAND stemhand-tests)
     set_tests_properties(controllers PROPERTIES
-        ENVIRONMENT "STEMHAND_TEST_MODELS=${CMAKE_CURRENT_SOURCE_DIR}/build/models;STEMHAND_TEST_INPUT=${CMAKE_CURRENT_SOURCE_DIR}/models-dev/gtcrn/mix.wav;STEMHAND_TEST_REGISTRY=${CMAKE_CURRENT_SOURCE_DIR}/build/registry/index.json"
+        ENVIRONMENT "STEMHAND_TEST_MODELS=${CMAKE_CURRENT_SOURCE_DIR}/build/models;STEMHAND_TEST_INPUT=${CMAKE_CURRENT_SOURCE_DIR}/models-dev/gtcrn/mix.wav;STEMHAND_TEST_REGISTRY=${CMAKE_CURRENT_SOURCE_DIR}/build/registry/index.json;STEMHAND_TEST_STEMS=${CMAKE_CURRENT_SOURCE_DIR}/build/testmix/mix3_stems"
     )
 endif()

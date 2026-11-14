@@ -1,6 +1,7 @@
 #include "audiofile.h"
 #include "cli.h"
 #include "denoisecontroller.h"
+#include "engine/stemplayer.h"
 #include "separatecontroller.h"
 #include "updatecontroller.h"
 #include "modelstore.h"
@@ -251,6 +252,28 @@ int main(int argc, char *argv[])
     DenoiseController denoise(&store);
     UpdateController updates(&store);
     SeparateController separate(&store);
+    StemPlayer player;
+    QStringList loadedStemPaths;
+    QObject::connect(&separate, &SeparateController::stemsChanged, &player, [&] {
+        const QVariantList stems = separate.stems();
+        QStringList paths;
+        QVector<StemState> states;
+        for (const QVariant &item : stems) {
+            const QVariantMap map = item.toMap();
+            paths.append(map.value(QStringLiteral("path")).toString());
+            StemState state;
+            state.gainDb = static_cast<float>(map.value(QStringLiteral("gain")).toDouble());
+            state.muted = map.value(QStringLiteral("muted")).toBool();
+            state.solo = map.value(QStringLiteral("solo")).toBool();
+            states.append(state);
+        }
+        if (paths != loadedStemPaths) {
+            loadedStemPaths = paths;
+            player.load(paths, states);
+        } else {
+            player.setStates(states);
+        }
+    });
     QObject::connect(&audio, &AudioFile::fileChanged, &separate,
                      [&audio, &separate] { separate.discover(QUrl::fromLocalFile(audio.path())); });
     QObject::connect(&denoise, &DenoiseController::finished, &audio,
@@ -264,6 +287,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("denoise"), &denoise);
     engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
     engine.rootContext()->setContextProperty(QStringLiteral("separate"), &separate);
+    engine.rootContext()->setContextProperty(QStringLiteral("player"), &player);
     engine.rootContext()->setContextProperty(QStringLiteral("appVersion"),
                                              QStringLiteral(STEMHAND_VERSION));
     engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));

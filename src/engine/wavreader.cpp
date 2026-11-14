@@ -88,6 +88,7 @@ bool WavReader::open(const QString &path, QString *error)
 
     m_frames = dataBytes / (m_channels * 2);
     m_remaining = m_frames;
+    m_dataOffset = dataOffset;
     m_file.seek(dataOffset);
     return true;
 }
@@ -99,6 +100,14 @@ void WavReader::close()
     m_sampleRate = 0;
     m_frames = 0;
     m_remaining = 0;
+}
+
+bool WavReader::seek(qint64 frame)
+{
+    if (!m_file.isOpen() || frame < 0 || frame > m_frames)
+        return false;
+    m_remaining = m_frames - frame;
+    return m_file.seek(m_dataOffset + frame * m_channels * 2);
 }
 
 bool WavReader::read(qint64 frames, float *interleaved, qint64 *read, QString *error)

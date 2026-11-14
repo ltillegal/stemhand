@@ -47,6 +47,7 @@ ApplicationWindow {
     Shortcut { sequence: "R"; onActivated: store.rescan() }
     Shortcut { sequence: "I"; onActivated: importDialog.open() }
     Shortcut { sequence: "D"; onActivated: denoise.run(audio.path) }
+    Shortcut { sequence: "Space"; onActivated: player.toggle() }
     Shortcut { sequence: "Q"; onActivated: Qt.quit() }
     Shortcut { sequence: "Ctrl+Q"; onActivated: Qt.quit() }
 
@@ -394,6 +395,21 @@ ApplicationWindow {
                                 color: pal.dim
                                 font.pixelSize: 9
                                 font.letterSpacing: 1.6
+                            }
+
+                            Button {
+                                text: player.playing ? qsTr("Pause") : qsTr("Play")
+                                flat: true
+                                font.pixelSize: 11
+                                enabled: player.hasAudio
+                                onClicked: player.toggle()
+                            }
+
+                            Text {
+                                text: player.positionText + " / " + player.durationText
+                                color: pal.dim
+                                font.pixelSize: 10
+                                font.family: "monospace"
                             }
 
                             Item { Layout.fillWidth: true }

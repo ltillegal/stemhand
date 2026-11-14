@@ -23,12 +23,15 @@ public:
     // Reads up to `frames` interleaved frames; sets `read` to what it got.
     bool read(qint64 frames, float *interleaved, qint64 *read, QString *error);
 
+    bool seek(qint64 frame);
+
 private:
     QFile m_file;
     int m_channels = 0;
     int m_sampleRate = 0;
     qint64 m_frames = 0;
     qint64 m_remaining = 0;
+    qint64 m_dataOffset = 0;
 };
 
 } // namespace stemhand

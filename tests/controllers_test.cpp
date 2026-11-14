@@ -1,5 +1,6 @@
 #include "denoisecontroller.h"
 #include "engine/stemmixer.h"
+#include "engine/stemplayer.h"
 #include "engine/wavreader.h"
 #include "engine/wavwriter.h"
 #include "modelstore.h"
@@ -24,6 +25,7 @@ private slots:
     void denoisesVoice();
     void mixesStems();
     void cancelsSeparation();
+    void playsStems();
     void installsFromRegistry();
 };
 
@@ -161,6 +163,36 @@ void ControllersTest::cancelsSeparation()
     QCOMPARE(finished.count(), 0);
     QVERIFY(controller.stems().isEmpty());
     QVERIFY(controller.message().isEmpty());
+}
+
+void ControllersTest::playsStems()
+{
+    const QString folder = qEnvironmentVariable("STEMHAND_TEST_STEMS");
+    if (folder.isEmpty())
+        QSKIP("set STEMHAND_TEST_STEMS to run this test");
+
+    QStringList paths;
+    for (const QString &name : {"drums", "bass", "other", "vocals"}) {
+        const QString path = folder + QStringLiteral("/mix3_") + name + QStringLiteral(".wav");
+        if (QFileInfo::exists(path))
+            paths.append(path);
+    }
+    if (paths.size() != 4)
+        QSKIP("no complete stem set in STEMHAND_TEST_STEMS");
+
+    StemPlayer player;
+    QVector<StemState> states(4);
+    QVERIFY(player.load(paths, states));
+    QVERIFY(player.hasAudio());
+    QVERIFY(player.duration() > 1.0);
+
+    player.play();
+    QVERIFY(player.playing());
+    QTRY_VERIFY_WITH_TIMEOUT(player.position() > 0.2, 8000);
+
+    player.stop();
+    QVERIFY(!player.playing());
+    QCOMPARE(player.position(), 0.0);
 }
 
 void ControllersTest::installsFromRegistry()
