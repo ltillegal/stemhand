@@ -5,3 +5,4 @@ build/
 .cache/
 models-dev/
 third_party/
+keys/dev.pub

@@ -20,8 +20,17 @@ pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium)
 
 # The public half of the model-signing key is compiled in, so a swapped
 # model directory cannot be made to look valid by shipping a matching key.
+# The signing key belongs to the checkout, not to the repository: a public key
+# committed by someone else would pin a trust anchor nobody can sign with.
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/keys/dev.pub")
-    message(FATAL_ERROR "keys/dev.pub is missing. Run scripts/dev-keys.sh to create it.")
+    message(STATUS "Generating a development model-signing key")
+    execute_process(
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/scripts/dev-keys.sh"
+        RESULT_VARIABLE key_result
+        OUTPUT_QUIET)
+    if(NOT key_result EQUAL 0)
+        message(FATAL_ERROR "scripts/dev-keys.sh failed; models cannot be trusted without a key")
+    endif()
 endif()
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/keys/dev.pub" STEMHAND_PINNED_KEY)
 string(STRIP "${STEMHAND_PINNED_KEY}" STEMHAND_PINNED_KEY)

@@ -8,8 +8,10 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 mkdir -p "$root/keys"
 
-if [ -f "$root/keys/dev.pub" ]; then
-    echo "keys/dev.pub already exists — nothing to do"
+# A matching private key is what makes the public one usable. Without it the
+# public key is a dead file from someone else's checkout, so regenerate both.
+if [ -f "$root/keys/dev.pub" ] && [ -f "$root/.dev-keys/dev-signing.key" ]; then
+    echo "signing key already present — nothing to do"
     exit 0
 fi
 
