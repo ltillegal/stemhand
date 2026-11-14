@@ -96,6 +96,9 @@ int main(int argc, char *argv[])
     QString denoiseOut;
     QString modelRef;
     QString updateIndex;
+    QString preferRef;
+    QString releaseId;
+    bool listVersions = false;
     bool checkOnly = false;
     int threads = 0;
 
@@ -110,6 +113,12 @@ int main(int argc, char *argv[])
             denoiseOut = raw.at(++i);
         } else if (arg == QLatin1String("--update") && i + 1 < raw.size()) {
             updateIndex = raw.at(++i);
+        } else if (arg == QLatin1String("--prefer") && i + 1 < raw.size()) {
+            preferRef = raw.at(++i);
+        } else if (arg == QLatin1String("--release") && i + 1 < raw.size()) {
+            releaseId = raw.at(++i);
+        } else if (arg == QLatin1String("--versions")) {
+            listVersions = true;
         } else if (arg == QLatin1String("--check")) {
             checkOnly = true;
         } else if (arg == QLatin1String("--model") && i + 1 < raw.size()) {
@@ -130,6 +139,7 @@ int main(int argc, char *argv[])
                 "  photone --scan [--json]   list the model store, exit 1 if a model is broken\n"
                 "  photone --denoise <in> <out> [--model <id|dir>] [--threads N]\n"
                 "  photone --update <index-url> [--check]\n"
+                "  photone --prefer <id>@<version> | --release <id> | --versions\n"
                 "  photone --root <dir>      use another model store\n",
                 PHOTONE_VERSION);
             return 0;
@@ -140,7 +150,10 @@ int main(int argc, char *argv[])
 
     // Scan mode has to work from a terminal and from agents with no display,
     // so it never constructs a GUI application (and never touches the session).
-    if (scan || !denoiseIn.isEmpty() || !updateIndex.isEmpty()) {
+    const bool headless = scan || !denoiseIn.isEmpty() || !updateIndex.isEmpty()
+        || !preferRef.isEmpty() || !releaseId.isEmpty() || listVersions;
+
+    if (headless) {
         QCoreApplication app(argc, argv);
         QCoreApplication::setApplicationName(QStringLiteral("photone"));
         if (sodium_init() < 0) {
@@ -149,6 +162,13 @@ int main(int argc, char *argv[])
         }
         if (scan)
             return runScan(root, asJson);
+
+        if (!preferRef.isEmpty())
+            return runPrefer(preferRef, root);
+        if (!releaseId.isEmpty())
+            return runRelease(releaseId, root);
+        if (listVersions)
+            return runVersions(root);
 
         if (!updateIndex.isEmpty()) {
             UpdateRequest request;

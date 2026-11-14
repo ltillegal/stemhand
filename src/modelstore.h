@@ -2,6 +2,7 @@
 
 #include "manifest.h"
 
+#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QString>
@@ -24,6 +25,7 @@ struct ModelEntry {
     QString detail;
     qint64 bytes = 0;
     bool signaturePresent = false;
+    bool preferred = false;
 
     QString statusKey() const;
 };
@@ -61,6 +63,10 @@ public:
     Q_INVOKABLE bool importFolder(const QUrl &folder);
     Q_INVOKABLE void openRootInFileManager();
 
+    // Pins a version: updates never silently change what a project runs on.
+    Q_INVOKABLE bool prefer(const QString &id, const QString &version);
+    Q_INVOKABLE bool releasePreference(const QString &id);
+
 signals:
     void changed();
     void lastErrorChanged();
@@ -71,6 +77,7 @@ private:
 
     QString m_root;
     QList<ModelEntry> m_entries;
+    QHash<QString, QString> m_preferred;
     QString m_lastError;
 };
 

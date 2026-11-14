@@ -25,4 +25,9 @@ struct UpdateRequest {
 // Headless update path: plan against the index, then install what is missing.
 int runUpdate(const UpdateRequest &request);
 
+// Pin or unpin the version a model id runs on, and list what is installed.
+int runPrefer(const QString &reference, const QString &storeRoot);
+int runRelease(const QString &id, const QString &storeRoot);
+int runVersions(const QString &storeRoot);
+
 } // namespace photone

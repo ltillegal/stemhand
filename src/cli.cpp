@@ -221,4 +221,66 @@ int runUpdate(const UpdateRequest &request)
     return ok ? 0 : 1;
 }
 
+int runPrefer(const QString &reference, const QString &storeRoot)
+{
+    const int at = reference.lastIndexOf(QLatin1Char('@'));
+    if (at <= 0 || at == reference.size() - 1) {
+        std::fprintf(stderr, "expected <id>@<version>, e.g. denoise/gtcrn@1.0.0\n");
+        return 64;
+    }
+
+    ModelStore store;
+    if (!storeRoot.isEmpty())
+        store.setRoot(storeRoot);
+    store.rescan();
+
+    const QString id = reference.left(at);
+    const QString version = reference.mid(at + 1);
+
+    if (!store.prefer(id, version)) {
+        std::fprintf(stderr, "%s\n", qPrintable(store.lastError()));
+        return 1;
+    }
+    std::printf("pinned   %s %s\n", qPrintable(id), qPrintable(version));
+    return 0;
+}
+
+int runRelease(const QString &id, const QString &storeRoot)
+{
+    ModelStore store;
+    if (!storeRoot.isEmpty())
+        store.setRoot(storeRoot);
+    store.rescan();
+    store.releasePreference(id);
+    std::printf("unpinned %s\n", qPrintable(id));
+    return 0;
+}
+
+int runVersions(const QString &storeRoot)
+{
+    ModelStore store;
+    if (!storeRoot.isEmpty())
+        store.setRoot(storeRoot);
+    store.rescan();
+
+    QString current;
+    for (const QVariant &item : store.models()) {
+        const QVariantMap map = item.toMap();
+        const QString id = map.value(QStringLiteral("id")).toString();
+        if (id != current) {
+            if (!current.isEmpty())
+                std::printf("\n");
+            current = id;
+            std::printf("%s\n", qPrintable(id));
+        }
+        std::printf("  %s %-10s %-12s %-9s %s\n",
+                    map.value(QStringLiteral("preferred")).toBool() ? "*" : " ",
+                    qPrintable(map.value(QStringLiteral("version")).toString()),
+                    qPrintable(map.value(QStringLiteral("status")).toString()),
+                    qPrintable(map.value(QStringLiteral("sizeLabel")).toString()),
+                    map.value(QStringLiteral("preferred")).toBool() ? "pinned" : "");
+    }
+    return 0;
+}
+
 } // namespace photone

@@ -103,6 +103,7 @@ QVariantList ModelStore::models() const
                        entry.dir + QLatin1Char('/') + entry.manifest.files.first().path);
         }
         map.insert(QStringLiteral("signed"), entry.signaturePresent);
+        map.insert(QStringLiteral("preferred"), entry.preferred);
         list.append(map);
     }
     return list;
@@ -161,6 +162,7 @@ void ModelStore::setRoot(const QString &root)
 void ModelStore::rescan()
 {
     m_entries.clear();
+    m_preferred.clear();
 
     // Model ids may contain slashes ("denoise/deepfilternet3"), so the version
     // directory is defined by where manifest.json sits, not by a fixed depth.
@@ -171,14 +173,28 @@ void ModelStore::rescan()
         loadEntry(it.fileInfo().absolutePath());
     }
 
-    // Newest version first: callers pick the first healthy match for a driver,
-    // and after an upgrade that must be the new version, not whichever one the
-    // filesystem happened to enumerate first.
-    std::sort(m_entries.begin(), m_entries.end(), [](const ModelEntry &a, const ModelEntry &b) {
+    // Order: kind, id, then the pinned version, then newest first. Callers take
+    // the first healthy match for a driver, so an update never silently changes
+    // what runs unless the user pinned it away.
+    for (const ModelEntry &entry : m_entries) {
+        if (m_preferred.contains(entry.manifest.id))
+            continue;
+        QFile file(m_root + QLatin1Char('/') + entry.manifest.id + QStringLiteral("/preferred"));
+        if (file.open(QIODevice::ReadOnly))
+            m_preferred.insert(entry.manifest.id,
+                               QString::fromUtf8(file.readAll()).trimmed());
+    }
+
+    for (ModelEntry &entry : m_entries)
+        entry.preferred = m_preferred.value(entry.manifest.id) == entry.manifest.version;
+
+    std::sort(m_entries.begin(), m_entries.end(), [this](const ModelEntry &a, const ModelEntry &b) {
         if (a.manifest.kind != b.manifest.kind)
             return a.manifest.kind < b.manifest.kind;
         if (a.manifest.id != b.manifest.id)
             return a.manifest.id < b.manifest.id;
+        if (a.preferred != b.preferred)
+            return a.preferred;
         return versionLess(b.manifest.version, a.manifest.version);
     });
 
@@ -324,6 +340,47 @@ bool ModelStore::importFolder(const QUrl &folder)
 
     rescan();
     setLastError(QString());
+    return true;
+}
+
+bool ModelStore::prefer(const QString &id, const QString &version)
+{
+    bool found = false;
+    for (const QVariant &item : models()) {
+        const QVariantMap map = item.toMap();
+        if (map.value(QStringLiteral("id")).toString() == id
+            && map.value(QStringLiteral("version")).toString() == version) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        setLastError(QStringLiteral("%1 %2 is not installed").arg(id, version));
+        return false;
+    }
+
+    const QString directory = m_root + QLatin1Char('/') + id;
+    if (!QDir().mkpath(directory)) {
+        setLastError(QStringLiteral("cannot create %1").arg(directory));
+        return false;
+    }
+
+    QFile file(directory + QStringLiteral("/preferred"));
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        setLastError(QStringLiteral("cannot write %1/preferred").arg(directory));
+        return false;
+    }
+    file.write(version.toUtf8() + "\n");
+    file.close();
+
+    rescan();
+    return true;
+}
+
+bool ModelStore::releasePreference(const QString &id)
+{
+    QFile::remove(m_root + QLatin1Char('/') + id + QStringLiteral("/preferred"));
+    rescan();
     return true;
 }
 

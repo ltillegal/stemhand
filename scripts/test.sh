@@ -95,6 +95,17 @@ if [ -f "$registry" ]; then
     check "newest version is listed first" "1.1.0" \
         "$("$bin" --scan --json --root "$upgrade" | grep '"version"' | head -1 | cut -d'"' -f4)"
 
+    # Pinning: an update must not silently change what a project runs on.
+    "$bin" --prefer "denoise/gtcrn@1.0.0" --root "$upgrade" > /dev/null 2>&1
+    check "pin wins over newest" "1.0.0" \
+        "$("$bin" --scan --json --root "$upgrade" | grep '"version"' | head -1 | cut -d'"' -f4)"
+    check "denoise honours the pin" "1.0.0" \
+        "$("$bin" --denoise "$root/models-dev/gtcrn/mix.wav" "$upgrade/pinned.wav" --root "$upgrade" 2>/dev/null \
+           | grep -o 'gtcrn [0-9.]*' | awk '{print $2}')"
+    "$bin" --release denoise/gtcrn --root "$upgrade" > /dev/null 2>&1
+    check "release falls back to newest" "1.1.0" \
+        "$("$bin" --scan --json --root "$upgrade" | grep '"version"' | head -1 | cut -d'"' -f4)"
+
     bad="$root/build/registry-bad"
     rm -rf "$bad"
     cp -r "$root/build/registry" "$bad"
