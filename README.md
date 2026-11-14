@@ -1,6 +1,6 @@
 # Stemhand
 
-[Русский](#ru) · [English](#en)
+[Русский](#русский) · [English](#english)
 
 Local stem separation and voice cleanup: four stems out of a finished mix, drum
 parts, speech denoising — all on your own machine, nothing uploaded.
@@ -9,8 +9,6 @@ Target platform is macOS on Apple Silicon; development happens on Linux.
 ![Stemhand](docs/screenshot.png)
 
 ---
-
-<a id="ru"></a>
 
 ## Русский
 
@@ -197,8 +195,6 @@ execution provider (главный рычаг скорости на Apple Silico
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
-
-<a id="en"></a>
 
 ## English
 
