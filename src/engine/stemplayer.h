@@ -48,6 +48,7 @@ public:
     Q_INVOKABLE void pause();
     Q_INVOKABLE void stop();
     Q_INVOKABLE void toggle();
+    Q_INVOKABLE void seek(double seconds);
 
 signals:
     void playingChanged();

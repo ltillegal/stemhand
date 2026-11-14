@@ -353,6 +353,14 @@ ApplicationWindow {
                         peaks: audio.peaks
                         accent: pal.accent
                         gridColor: "#1b1f27"
+                        progress: player.duration > 0 ? player.position / player.duration : 0
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: player.hasAudio
+                        onClicked: (mouse) => player.seek(
+                                       Math.max(0, Math.min(1, mouse.x / width)) * player.duration)
                     }
 
                     Text {

@@ -140,9 +140,15 @@ public:
 
     void rewind()
     {
+        seekToFrame(0);
+    }
+
+    void seekToFrame(qint64 frame)
+    {
+        frame = std::clamp<qint64>(frame, 0, m_frames);
         for (auto &reader : m_readers)
-            reader->seek(0);
-        m_position = 0;
+            reader->seek(frame);
+        m_position = frame;
     }
 
 private:
@@ -313,6 +319,17 @@ void StemPlayer::stop()
     d->positionTimer.stop();
     setPlaying(false);
     m_position = 0.0;
+    emit positionChanged();
+}
+
+void StemPlayer::seek(double seconds)
+{
+    if (m_duration <= 0.0)
+        return;
+    const qint64 frame = std::clamp<qint64>(
+        static_cast<qint64>(seconds * d->device.rate()), 0, d->device.frames());
+    d->device.seekToFrame(frame);
+    m_position = frame / static_cast<double>(d->device.rate());
     emit positionChanged();
 }
 

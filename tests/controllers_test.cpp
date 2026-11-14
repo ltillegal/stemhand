@@ -190,6 +190,11 @@ void ControllersTest::playsStems()
     QVERIFY(player.playing());
     QTRY_VERIFY_WITH_TIMEOUT(player.position() > 0.2, 8000);
 
+    // Seeking moves the playhead and the readers together.
+    player.seek(1.0);
+    QVERIFY(std::fabs(player.position() - 1.0) < 0.05);
+    QTRY_VERIFY_WITH_TIMEOUT(player.position() > 1.2, 8000);
+
     player.stop();
     QVERIFY(!player.playing());
     QCOMPARE(player.position(), 0.0);

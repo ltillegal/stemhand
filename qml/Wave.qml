@@ -7,6 +7,8 @@ Item {
     property var peaks: []
     property color accent: "#7dd3fc"
     property color gridColor: "#1b1f27"
+    property real progress: 0
+    property color playhead: "#7dd3fc"
 
     Rectangle {
         anchors.fill: parent
@@ -22,5 +24,15 @@ Item {
         peaks: root.peaks
         accent: root.accent
         gridColor: root.gridColor
+    }
+
+    Rectangle {
+        visible: root.progress > 0
+        x: 16 + (root.width - 32) * root.progress
+        y: 12
+        width: 1
+        height: root.height - 24
+        color: root.playhead
+        opacity: 0.9
     }
 }
