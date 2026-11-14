@@ -1,14 +1,26 @@
 # Stemhand
 
+[Русский](#ru) · [English](#en)
+
+Local stem separation and voice cleanup: four stems out of a finished mix, drum
+parts, speech denoising — all on your own machine, nothing uploaded.
+Target platform is macOS on Apple Silicon; development happens on Linux.
+
+![Stemhand](docs/screenshot.png)
+
+---
+
+<a id="ru"></a>
+
+## Русский
+
 Локальное приложение для разделения и очистки аудио: стемы из готового микса,
 барабаны, голоса, денойзинг — всё на своей машине, без загрузок наружу.
 Целевая платформа — macOS на Apple Silicon (M1, Sequoia); разработка идёт на Linux.
 
-![Stemhand](docs/screenshot.png)
+### Что работает
 
-## Что работает
-
-**M0 — оболочка и доверие к моделям:**
+**Оболочка и доверие к моделям:**
 
 - Хранилище `~/Library/Application Support/stemhand/models/<id>/<version>/`
   (Linux: `~/.local/share/stemhand/models`).
@@ -18,137 +30,111 @@
   весах ловится хешем, подмена манифеста — подписью.
 - Волна из `ffmpeg`, CLI без дисплея: `stemhand --scan [--json]`.
 
-**M1 — первый настоящий звук:**
+**Денойзинг речи (GTCRN):**
 
 - ONNX Runtime в C++, драйвер `gtcrn` (16 кГц, STFT 512/256, sqrt-Hann, WOLA).
-- Модель GTCRN: 523 КБ, 0.05M параметров, MIT включая веса.
+- Модель: 523 КБ, 0.05M параметров, MIT включая веса.
 - CLI: `stemhand --denoise <in> <out>`; в приложении — кнопка **Denoise voice**
-  и клавиша `D`.
+  и клавиша `D`. Показывает прогресс и отменяется.
 
-**M3 — четыре стема:**
+**Четыре стема (htdemucs):**
 
 - `stemhand --separate <in> <outdir>` — drums / bass / other / vocals.
-- Модель htdemucs (289 МБ, ONNX), драйвер `htdemucs`.
+- Модель 289 МБ, ONNX, драйвер `htdemucs`.
 - Граф принимает ровно 343 980 сэмплов (7.8 с при 44.1 кГц) — длина сегмента
   запечена в экспорт, поэтому файл режется на сегменты с перекрытием 25 %,
   а стемы пишутся на диск потоком, а не копятся в памяти.
-- Настройки микса (громкость, mute, solo) сохраняются в `mix.json` рядом со
-  стемами и восстанавливаются при повторном открытии файла.
-- Денойзинг показывает прогресс в процентах и тоже отменяется.
-- Долгую операцию можно прервать: пока идёт разделение, кнопка становится
-  **Cancel**; недоделанные стемы удаляются, а не остаются половиной.
-- В приложении — кнопка **Separate 4 stems**; после разделения под волной
-  появляется микс-панель: четыре стема с mute, solo, гейном (−24…+12 дБ),
-  воспроизведением (Play/Pause, пробел), кликом по волне для перехода по
-  позиции и экспортом сведённого микса в WAV.
-- Экспорт считается потоком, в два прохода: первый измеряет пик, второй пишет
-  с одним общим коэффициентом. Громкий микс ужимается целиком, а не клиппится
-  по сэмплам.
+- Кнопка **Separate 4 stems**; после разделения под волной появляется
+  микс-панель: mute, solo, гейн (−24…+12 дБ), воспроизведение (Play/Pause,
+  пробел), клик по волне для перехода по позиции, экспорт микса в WAV.
+- Настройки микса сохраняются в `mix.json` рядом со стемами и восстанавливаются
+  при повторном открытии файла.
+- Долгую операцию можно прервать: кнопка становится **Cancel**, недоделанные
+  стемы удаляются.
+- Экспорт считается потоком, в два прохода: первый измеряет пик, второй пишет с
+  одним общим коэффициентом. Громкий микс ужимается целиком, а не клиппится.
 - Сверка с независимым Python-референсом: расхождение ровно 1 отсчёт PCM16
   (3·10⁻⁵), SI-SNR 48–81 дБ по стемам.
 
-Скорость: наблюдаемый диапазон на этой машине — **0.13–0.46× реального
-времени** (8 с аудио за 17–60 с). Разброс не от кода: фоновая нагрузка хоста
-гуляет (load average 7–8 при двух ядрах), и любой замер здесь смещён. Сравнивать
-числа можно только внутри одного «тихого» окна; на M1 нужен отдельный замер.
-
-**M2 — обновление моделей по сети:**
+**Обновление моделей по сети:**
 
 - `stemhand --update <index-url>` — проверяет индекс, ставит недостающее.
 - В приложении — кнопка **Update models**; адрес реестра запоминается в
   `registry.url` внутри хранилища, а не в глобальном конфиге.
 - Установка атомарная: скачивание в `.incoming/`, проверка подписи и хешей,
   потом `rename`. Провал проверки не оставляет модели.
-- Версии сосуществуют: после обновления 1.0.0 остаётся на диске.
-- Пиннинг: `--prefer <id>@<version>` фиксирует версию, `--release` снимает
-  пиннинг, `--versions` показывает, что установлено и что закреплено.
+- Версии сосуществуют; `--prefer <id>@<version>` фиксирует версию,
+  `--release` снимает пиннинг, `--versions` показывает состояние.
 
-Замеры на этой машине (i5-3210M, 2 ядра / 4 потока, без GPU):
+### Сборка на macOS (Apple Silicon)
 
-| Потоки | 9.77 с речи | Реальное время |
-|---|---|---|
-| 1 | 1.7–2.1 с | **4.9–5.7×** |
-| 2 | 2.1 с | 4.6× |
-| 4 | 3.6 с | 2.7× |
-
-Разброс в первой строке — не шум измерения, а чужая нагрузка на машине
-(load average 6.9 при двух ядрах). Под ней тот же прогон даёт 3.5 с вместо
-1.7 с. Замеры стоит повторять на незагруженной системе.
-
-Больше потоков — медленнее: граф крошечный, синхронизация дороже вычислений.
-Поэтому по умолчанию один поток.
-
-Сверка реализаций: C++ против независимого Python-референса — SI-SNR 70 дБ,
-максимальное расхождение 3·10⁻⁵ (это разница float32 против float64 в
-накоплении), корреляция 1.000000. Python-референс против **авторского**
-`enh.wav` — 77 дБ и 1.0000, то есть предобработка восстановлена верно, а не
-подогнана.
-
-## Сборка
-
-Linux (разработка):
+Нужен macOS 14+ и Apple Silicon. Всё остальное — одной командой:
 
 ```bash
-./scripts/fetch-onnxruntime.sh        # 35 МБ, кладёт ONNX Runtime в third_party/
-./scripts/dev-keys.sh                 # один раз: ключевая пара для подписи моделей
-cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build build -j
+brew install qt onnxruntime libsodium ffmpeg pkg-config cmake
+git clone https://github.com/ltillegal/stemhand && cd stemhand
+./scripts/build-macos.sh
 ```
 
-macOS (цель) — либо `./scripts/build-macos.sh`, либо вручную, после
-`brew install qt ffmpeg libsodium cmake pkg-config onnxruntime`:
+Скрипт настраивает CMake, собирает `.app`, прогоняет `macdeployqt`, кладёт
+`libonnxruntime.dylib` внутрь бандла, переписывает rpath и подписывает ad-hoc.
+Вручную — то же самое:
 
 ```bash
-cmake -S . -B build \
+./scripts/dev-keys.sh                 # ключ подписи моделей (создаётся один раз)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
   -DONNXRUNTIME_ROOT="$(brew --prefix onnxruntime)"
 cmake --build build -j
 open build/stemhand.app
 ```
 
-Подробно про бандл, `macdeployqt`, dylib и грабли — [docs/MACOS.md](docs/MACOS.md).
+Модели ставятся в каталог приложения (`~/Library/Application Support/stemhand/models`):
+
+```bash
+curl -L -o gtcrn_simple.onnx \
+  https://huggingface.co/bitsydarel/gtcrn-onnx/resolve/main/gtcrn_simple.onnx
+./scripts/install-gtcrn.sh gtcrn_simple.onnx
+
+curl -L -o htdemucs.onnx \
+  https://huggingface.co/MrCitron/demucs-v4-onnx/resolve/main/htdemucs.onnx
+./scripts/install-demucs.sh htdemucs.onnx
+
+open build/stemhand.app
+```
+
+**Сборка на Mac пока не проверена ни разу** — машины под рукой нет. Ожидаемые
+грабли (PATH у `.app` из Finder, `macdeployqt`, dylib ONNX Runtime, подпись)
+разобраны в [docs/MACOS.md](docs/MACOS.md); версии формул Homebrew сверены
+2026-11-14: qt 6.12.0, onnxruntime 1.32.0, libsodium 1.0.22, ffmpeg 9.0.2.
+
+### Сборка на Linux (разработка)
+
+```bash
+./scripts/fetch-onnxruntime.sh        # 35 МБ, кладёт ONNX Runtime в third_party/
+./scripts/dev-keys.sh                 # ключевая пара для подписи моделей
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build -j
+```
+
 ONNX Runtime необязателен при конфигурации: без него собирается всё, кроме
 движка, а денойзинг честно сообщает, что движка нет.
 
-## Обновление моделей
+### Скорость
 
-Реестр — это каталог или HTTP-префикс с `index.json` и по одному каталогу на
-версию модели:
+Наблюдаемый диапазон на машине разработки (i5-3210M, 2 ядра / 4 потока, без
+GPU) — **0.13–0.46× реального времени** для разделения (8 с аудио за 17–60 с).
+Разброс не от кода: фоновая нагрузка хоста гуляет (load average 7–8 при двух
+ядрах), и любой замер здесь смещён. Сравнивать числа можно только внутри одного
+«тихого» окна; на M1 нужен отдельный замер.
 
-```json
-{
-  "schema": 1,
-  "models": [
-    { "id": "denoise/gtcrn", "version": "1.1.0",
-      "manifest": "denoise/gtcrn/1.1.0/manifest.json" }
-  ]
-}
-```
+Денойзинг речи на той же машине — 4.9–5.7× реального времени в один поток.
+Больше потоков делает его медленнее: граф крошечный, синхронизация дороже
+вычислений, поэтому по умолчанию один поток.
 
-```bash
-./scripts/make-registry.sh 1.1.0            # локальный реестр для тестов
-./build/stemhand --update "file://$PWD/build/registry/index.json" --root build/upg
-# update   denoise/gtcrn 1.1.0 (from 1.0.0)
-# done     build/upg/denoise/gtcrn/1.1.0
-```
-
-Индекс не является источником доверия: он умеет только указывать, а манифест
-каждой модели подписан и пинит хеши весов. Поэтому подмена индекса даёт отказ
-проверки, а не подмену модели.
+### Модели
 
 ```bash
-./build/stemhand --update https://example.org/stemhand/index.json --check  # только план
-./build/stemhand --versions                                  # что установлено
-./build/stemhand --prefer denoise/gtcrn@1.0.0                # закрепить версию
-./build/stemhand --release denoise/gtcrn                     # снять закрепление
-```
-
-## Модели
-
-```bash
-# GTCRN, 16 кГц денойзер речи (523 КБ)
-curl -L -o gtcrn_simple.onnx \
-  https://huggingface.co/bitsydarel/gtcrn-onnx/resolve/main/gtcrn_simple.onnx
 ./scripts/install-gtcrn.sh gtcrn_simple.onnx      # ставит в каталог приложения
 ```
 
@@ -160,9 +146,8 @@ curl -L -o gtcrn_simple.onnx \
 ./build/stemhand --scan --json
 ```
 
-Формат манифеста — см. ниже; поле `driver` задаёт контракт рантайма
-(`gtcrn` сейчас, `htdemucs` и `roformer` дальше), `engine_abi` — совместимость
-с бинарём.
+Манифест модели: поле `driver` задаёт контракт рантайма (`gtcrn`, `htdemucs`),
+`engine_abi` — совместимость с бинарём, `files[]` — путь, SHA-256 и размер.
 
 ```json
 {
@@ -183,18 +168,20 @@ curl -L -o gtcrn_simple.onnx \
 }
 ```
 
-Подпись: `stemhand-sign sign <model-dir> <private-key>` создаёт `manifest.json.sig`.
-Публичный ключ зашит в бинарь (`keys/dev.pub` → `cmake/pinned_key.h.in`),
-приватный лежит в `.dev-keys/` и в git не попадает.
+Подпись: `stemhand-sign sign <model-dir> <private-key>` создаёт
+`manifest.json.sig`. Публичный ключ зашивается в бинарь при сборке
+(`keys/dev.pub` → `cmake/pinned_key.h.in`), приватный лежит в `.dev-keys/` и в
+git не попадает. Ключ генерируется в каждой копии репозитория: коммитить чужой
+публичный ключ бессмысленно, им никто не сможет подписать.
 
-## Тесты
+### Тесты
 
 ```bash
 ./scripts/test.sh        # 24 проверки: доверие, подмена, денойзинг, стемы, микс, обновления
-cd build && ctest        # асинхронный путь через движок (Qt Test)
+cd build && ctest        # 7 Qt-тестов: движки, отмена, воспроизведение, реестр
 ```
 
-## Лицензии моделей
+### Лицензии моделей
 
 См. [docs/MODELS.md](docs/MODELS.md). Коротко: при личном использовании
 ограничений нет, но `DrumSep 5-stem`, `BS-RoFormer` и `Spleeter` **не
@@ -202,8 +189,204 @@ cd build && ctest        # асинхронный путь через движо
 у авторов. MUSDB18, на котором обучено почти всё, сам некоммерческий
 (`CC BY-NC-SA`).
 
-## Дальше
+### Дальше
 
-M2 — реестр обновлений: скачивание моделей по HTTP-индексу, докачка, откат,
-пиннинг версии в проекте. M3 — htdemucs и 4 стема. План и обоснования —
+Проверить сборку на M1 и снять там первые честные секунды; подключить CoreML
+execution provider (главный рычаг скорости на Apple Silicon); измерить качество
+на реальной музыке, а не только на синтетике. План и обоснования —
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+<a id="en"></a>
+
+## English
+
+A local application for audio separation and cleanup: stems from a finished mix,
+drum parts, speech denoising — all on your own machine, nothing uploaded.
+Target platform is macOS on Apple Silicon (M1, Sequoia); development happens on
+Linux.
+
+### What works
+
+**Shell and model trust:**
+
+- Store at `~/Library/Application Support/stemhand/models/<id>/<version>/`
+  (Linux: `~/.local/share/stemhand/models`).
+- An Ed25519 signature covers `manifest.json` byte for byte, and the manifest
+  pins the SHA-256 of every file. One signature authenticates the whole
+  directory.
+- Statuses `ok / unverified / corrupt / incompatible / broken`; a flipped byte in
+  the weights is caught by the hash, a rewritten manifest by the signature.
+- Waveform via `ffmpeg`, headless CLI: `stemhand --scan [--json]`.
+
+**Speech denoising (GTCRN):**
+
+- ONNX Runtime in C++, `gtcrn` driver (16 kHz, STFT 512/256, sqrt-Hann, WOLA).
+- Model: 523 KB, 0.05M parameters, MIT including the weights.
+- CLI: `stemhand --denoise <in> <out>`; in the app — the **Denoise voice**
+  button and the `D` key. Shows progress and can be cancelled.
+
+**Four stems (htdemucs):**
+
+- `stemhand --separate <in> <outdir>` — drums / bass / other / vocals.
+- 289 MB ONNX model, `htdemucs` driver.
+- The graph accepts exactly 343,980 samples (7.8 s at 44.1 kHz) — the segment
+  length is baked into the export, so files are chunked with 25 % overlap and
+  stems are streamed to disk instead of being held in memory.
+- **Separate 4 stems** button; afterwards a mix panel appears under the
+  waveform: mute, solo, gain (−24…+12 dB), playback (Play/Pause, Space),
+  click-to-seek on the waveform, and WAV export of the mix.
+- Mix settings (gain, mute, solo) are saved to `mix.json` next to the stems and
+  restored when the file is reopened.
+- A long job can be interrupted: the button becomes **Cancel**, partial stems
+  are removed.
+- Export is streamed in two passes: the first measures the peak, the second
+  writes with one global factor. A hot mix is scaled down, not clipped per
+  sample.
+- Cross-checked against an independent Python reference: the difference is
+  exactly 1 PCM16 sample (3·10⁻⁵), SI-SNR 48–81 dB per stem.
+
+**Model updates over the network:**
+
+- `stemhand --update <index-url>` — reads the index and installs what is
+  missing.
+- In the app — the **Update models** button; the registry URL is remembered in
+  `registry.url` inside the store, not in a global config.
+- Atomic install: download into `.incoming/`, verify signature and hashes, then
+  `rename`. A failed check leaves no model behind.
+- Versions coexist; `--prefer <id>@<version>` pins one, `--release` unpins,
+  `--versions` lists what is installed and what is pinned.
+
+### Building on macOS (Apple Silicon)
+
+macOS 14+ and Apple Silicon are required. Everything else is one command:
+
+```bash
+brew install qt onnxruntime libsodium ffmpeg pkg-config cmake
+git clone https://github.com/ltillegal/stemhand && cd stemhand
+./scripts/build-macos.sh
+```
+
+The script configures CMake, builds the `.app`, runs `macdeployqt`, copies
+`libonnxruntime.dylib` into the bundle, rewrites the rpath and signs ad-hoc.
+By hand it is the same thing:
+
+```bash
+./scripts/dev-keys.sh                 # model signing key (created once)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
+  -DONNXRUNTIME_ROOT="$(brew --prefix onnxruntime)"
+cmake --build build -j
+open build/stemhand.app
+```
+
+Models go into the application store
+(`~/Library/Application Support/stemhand/models`):
+
+```bash
+curl -L -o gtcrn_simple.onnx \
+  https://huggingface.co/bitsydarel/gtcrn-onnx/resolve/main/gtcrn_simple.onnx
+./scripts/install-gtcrn.sh gtcrn_simple.onnx
+
+curl -L -o htdemucs.onnx \
+  https://huggingface.co/MrCitron/demucs-v4-onnx/resolve/main/htdemucs.onnx
+./scripts/install-demucs.sh htdemucs.onnx
+
+open build/stemhand.app
+```
+
+**The macOS build has never been verified** — there is no Mac in the
+development loop. Expected pitfalls (the `.app` PATH from Finder,
+`macdeployqt`, the ONNX Runtime dylib, signing) are covered in
+[docs/MACOS.md](docs/MACOS.md). Homebrew formula versions were checked on
+2026-11-14: qt 6.12.0, onnxruntime 1.32.0, libsodium 1.0.22, ffmpeg 9.0.2.
+
+### Building on Linux (development)
+
+```bash
+./scripts/fetch-onnxruntime.sh        # 35 MB, unpacks ONNX Runtime into third_party/
+./scripts/dev-keys.sh                 # model signing keypair
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build -j
+```
+
+ONNX Runtime is optional at configure time: without it everything builds except
+the engine, and the denoiser says plainly that the engine is missing.
+
+### Speed
+
+The observed range on the development machine (i5-3210M, 2 cores / 4 threads, no
+GPU) is **0.13–0.46× realtime** for separation (8 s of audio in 17–60 s). The
+spread is not the code: the host's background load moves between 7 and 8 on two
+cores, so every measurement here is biased. Numbers are comparable only within
+one quiet window; Apple Silicon needs its own measurement.
+
+Speech denoising on the same machine runs at 4.9–5.7× realtime on one thread.
+More threads make it slower: the graph is tiny and synchronisation costs more
+than the arithmetic, so one thread is the default.
+
+### Models
+
+```bash
+./scripts/install-gtcrn.sh gtcrn_simple.onnx      # installs into the app store
+```
+
+```bash
+./build/stemhand --denoise interview.wav clean.wav
+./build/stemhand --separate song.mp3 stems/
+./build/stemhand --mix stems/ mix.wav --solo vocals --gain vocals=3
+./build/stemhand --mix stems/ mix.wav --mute drums
+./build/stemhand --scan --json
+```
+
+A model manifest: `driver` names the runtime contract (`gtcrn`, `htdemucs`),
+`engine_abi` is compatibility with the binary, `files[]` carries path, SHA-256
+and size.
+
+```json
+{
+  "schema": 1,
+  "id": "denoise/gtcrn",
+  "version": "1.0.0",
+  "name": "GTCRN",
+  "kind": "denoise",
+  "driver": "gtcrn",
+  "engine_abi": 1,
+  "sample_rate": 16000,
+  "channels": 1,
+  "stems": ["voice"],
+  "license": { "code": "MIT", "weights": "MIT", "commercial": true },
+  "files": [
+    { "path": "gtcrn_simple.onnx", "sha256": "...", "size": 535638 }
+  ]
+}
+```
+
+Signing: `stemhand-sign sign <model-dir> <private-key>` writes
+`manifest.json.sig`. The public key is compiled into the binary at build time
+(`keys/dev.pub` → `cmake/pinned_key.h.in`); the private key lives in
+`.dev-keys/` and never enters git. The key is generated per checkout: committing
+someone else's public key would pin an anchor nobody can sign with.
+
+### Tests
+
+```bash
+./scripts/test.sh        # 24 checks: trust, tampering, denoising, stems, mixing, updates
+cd build && ctest        # 7 Qt tests: engines, cancellation, playback, registry
+```
+
+### Model licences
+
+See [docs/MODELS.md](docs/MODELS.md). In short: for personal use there are no
+restrictions, but `DrumSep 5-stem`, `BS-RoFormer` and `Spleeter` **state no
+licence for their weights** — they cannot be redistributed, only downloaded
+from their authors. MUSDB18, which nearly everything is trained on, is itself
+non-commercial (`CC BY-NC-SA`).
+
+### Next
+
+Verify the build on M1 and take the first honest timings there; wire up the
+CoreML execution provider (the main speed lever on Apple Silicon); measure
+quality on real music rather than synthetic material. Plan and reasoning live in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
