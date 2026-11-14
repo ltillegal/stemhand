@@ -89,6 +89,7 @@
 Linux (разработка):
 
 ```bash
+./scripts/fetch-onnxruntime.sh        # 35 МБ, кладёт ONNX Runtime в third_party/
 ./scripts/dev-keys.sh                 # один раз: ключевая пара для подписи моделей
 cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j
