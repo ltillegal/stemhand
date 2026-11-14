@@ -1,6 +1,7 @@
 #include "audiofile.h"
 #include "cli.h"
 #include "denoisecontroller.h"
+#include "separatecontroller.h"
 #include "updatecontroller.h"
 #include "modelstore.h"
 #include "waveformitem.h"
@@ -221,6 +222,9 @@ int main(int argc, char *argv[])
     AudioFile audio;
     DenoiseController denoise(&store);
     UpdateController updates(&store);
+    SeparateController separate(&store);
+    QObject::connect(&audio, &AudioFile::fileChanged, &separate,
+                     [&audio, &separate] { separate.discover(QUrl::fromLocalFile(audio.path())); });
     QObject::connect(&denoise, &DenoiseController::finished, &audio,
                      [&audio](const QString &path) { audio.load(QUrl::fromLocalFile(path)); });
 
@@ -231,6 +235,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("audio"), &audio);
     engine.rootContext()->setContextProperty(QStringLiteral("denoise"), &denoise);
     engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
+    engine.rootContext()->setContextProperty(QStringLiteral("separate"), &separate);
     engine.rootContext()->setContextProperty(QStringLiteral("appVersion"),
                                              QStringLiteral(STEMHAND_VERSION));
     engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));

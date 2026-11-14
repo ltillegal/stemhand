@@ -62,6 +62,7 @@ qt_add_executable(stemhand
     src/waveformitem.cpp
     src/denoisecontroller.cpp
     src/updatecontroller.cpp
+    src/separatecontroller.cpp
     src/registry.cpp
     ${STEMHAND_ENGINE_SOURCES}
 )
