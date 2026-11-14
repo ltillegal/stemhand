@@ -71,10 +71,12 @@ Target platform is macOS on Apple Silicon; development happens on Linux.
 ```bash
 brew install qt onnxruntime libsodium ffmpeg pkg-config cmake
 git clone https://github.com/ltillegal/stemhand && cd stemhand
+./scripts/doctor.sh                   # только проверяет окружение, ничего не ставит
 ./scripts/build-macos.sh
 ```
 
-Скрипт настраивает CMake, собирает `.app`, прогоняет `macdeployqt`, кладёт
+Если `doctor.sh` что-то не нашёл — он так и скажет, что именно и какой командой
+ставить. Скрипт настраивает CMake, собирает `.app`, прогоняет `macdeployqt`, кладёт
 `libonnxruntime.dylib` внутрь бандла, переписывает rpath и подписывает ad-hoc.
 Вручную — то же самое:
 
@@ -261,10 +263,12 @@ macOS 14+ and Apple Silicon are required. Everything else is one command:
 ```bash
 brew install qt onnxruntime libsodium ffmpeg pkg-config cmake
 git clone https://github.com/ltillegal/stemhand && cd stemhand
+./scripts/doctor.sh                   # checks the environment, installs nothing
 ./scripts/build-macos.sh
 ```
 
-The script configures CMake, builds the `.app`, runs `macdeployqt`, copies
+If `doctor.sh` reports something missing, it names the formula to install. The
+script configures CMake, builds the `.app`, runs `macdeployqt`, copies
 `libonnxruntime.dylib` into the bundle, rewrites the rpath and signs ad-hoc.
 By hand it is the same thing:
 
