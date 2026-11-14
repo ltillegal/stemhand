@@ -11,7 +11,13 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 onnx="${1:?usage: install-demucs.sh <htdemucs.onnx> [store-root] [signing-key]}"
-store="${2:-$root/build/models}"
+# Default to the store the app itself uses, so an install needs no path.
+if [ "$(uname -s)" = "Darwin" ]; then
+    default_store="$HOME/Library/Application Support/stemhand/models"
+else
+    default_store="${XDG_DATA_HOME:-$HOME/.local/share}/stemhand/models"
+fi
+store="${2:-$default_store}"
 key="${3:-$root/.dev-keys/dev-signing.key}"
 sign="$root/build/stemhand-sign"
 

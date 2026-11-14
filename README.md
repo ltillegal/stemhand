@@ -149,12 +149,12 @@ ONNX Runtime необязателен при конфигурации: без н
 # GTCRN, 16 кГц денойзер речи (523 КБ)
 curl -L -o gtcrn_simple.onnx \
   https://huggingface.co/bitsydarel/gtcrn-onnx/resolve/main/gtcrn_simple.onnx
-./scripts/install-gtcrn.sh gtcrn_simple.onnx ~/.local/share/stemhand/models
+./scripts/install-gtcrn.sh gtcrn_simple.onnx      # ставит в каталог приложения
 ```
 
 ```bash
-./build/stemhand --denoise interview.wav clean.wav --root ~/.local/share/stemhand/models
-./build/stemhand --separate song.mp3 stems/ --root ~/.local/share/stemhand/models
+./build/stemhand --denoise interview.wav clean.wav
+./build/stemhand --separate song.mp3 stems/
 ./build/stemhand --mix stems/ mix.wav --solo vocals --gain vocals=3
 ./build/stemhand --mix stems/ mix.wav --mute drums
 ./build/stemhand --scan --json
