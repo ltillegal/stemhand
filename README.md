@@ -87,7 +87,8 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j
 ```
 
-macOS (цель), после `brew install qt ffmpeg libsodium cmake pkg-config onnxruntime`:
+macOS (цель) — либо `./scripts/build-macos.sh`, либо вручную, после
+`brew install qt ffmpeg libsodium cmake pkg-config onnxruntime`:
 
 ```bash
 cmake -S . -B build \
@@ -97,6 +98,7 @@ cmake --build build -j
 open build/stemhand.app
 ```
 
+Подробно про бандл, `macdeployqt`, dylib и грабли — [docs/MACOS.md](docs/MACOS.md).
 ONNX Runtime необязателен при конфигурации: без него собирается всё, кроме
 движка, а денойзинг честно сообщает, что движка нет.
 
