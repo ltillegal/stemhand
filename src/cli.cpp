@@ -182,7 +182,8 @@ int runSeparate(const SeparateRequest &request)
         return 1;
     }
 
-    const int threads = request.threads > 0 ? request.threads : QThread::idealThreadCount();
+    const int threads =
+        request.threads > 0 ? request.threads : std::max(1, QThread::idealThreadCount() / 2);
 
     HtdemucsSeparator separator;
     if (!separator.load(model.weightsPath, threads, &error)) {

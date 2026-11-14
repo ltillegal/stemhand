@@ -9,6 +9,8 @@
 #include <QUrl>
 #include <QVariantList>
 
+class QTimer;
+
 namespace stemhand {
 
 class ModelStore;
@@ -56,6 +58,9 @@ signals:
 
 private:
     void rebuildStems();
+    void scheduleMixStateSave();
+    void saveMixState() const;
+    void restoreMixState(const QString &folder);
     void setBusy(bool busy);
     void setMessage(const QString &message);
     void setError(const QString &error);
@@ -65,6 +70,7 @@ private:
     QString m_message;
     QString m_error;
     std::atomic_bool m_cancel{false};
+    QTimer *m_saveTimer = nullptr;
     QVariantList m_stems;
     QStringList m_paths;
     QVector<StemState> m_states;

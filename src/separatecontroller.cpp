@@ -6,6 +6,10 @@
 #include "modelstore.h"
 
 #include <QDesktopServices>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
+#include <QTimer>
 
 #include <functional>
 #include <QDir>
@@ -36,8 +40,13 @@ JobResult runJob(const QString &input, const QString &folder, const QString &mod
     JobResult result;
     result.folder = folder;
 
+    // Half the logical cores approximates the physical ones: htdemucs spends
+    // its time in convolutions that scale with real cores, and on a 2c/4t box
+    // 2 threads measured faster than 4.
+    const int threads = std::max(1, QThread::idealThreadCount() / 2);
+
     HtdemucsSeparator separator;
-    if (!separator.load(modelPath, QThread::idealThreadCount(), &result.error))
+    if (!separator.load(modelPath, threads, &result.error))
         return result;
 
     QVector<float> interleaved;
@@ -69,8 +78,67 @@ JobResult runJob(const QString &input, const QString &folder, const QString &mod
 SeparateController::SeparateController(ModelStore *store, QObject *parent)
     : QObject(parent)
     , m_store(store)
+    , m_saveTimer(new QTimer(this))
 {
     connect(m_store, &ModelStore::changed, this, &SeparateController::hasStemModelChanged);
+
+    // Dragging a slider emits a change per pixel; write the mix state once the
+    // hand stops instead of once per pixel.
+    m_saveTimer->setSingleShot(true);
+    m_saveTimer->setInterval(300);
+    connect(m_saveTimer, &QTimer::timeout, this, &SeparateController::saveMixState);
+}
+
+void SeparateController::scheduleMixStateSave()
+{
+    if (m_paths.isEmpty())
+        return;
+    m_saveTimer->start();
+}
+
+void SeparateController::saveMixState() const
+{
+    if (m_paths.isEmpty() || m_folder.isEmpty())
+        return;
+
+    QJsonObject stems;
+    for (int i = 0; i < m_paths.size(); ++i) {
+        QJsonObject state;
+        state.insert(QStringLiteral("gain"), m_states.at(i).gainDb);
+        state.insert(QStringLiteral("muted"), m_states.at(i).muted);
+        state.insert(QStringLiteral("solo"), m_states.at(i).solo);
+        stems.insert(QFileInfo(m_paths.at(i)).completeBaseName(), state);
+    }
+
+    QJsonObject root;
+    root.insert(QStringLiteral("schema"), 1);
+    root.insert(QStringLiteral("stems"), stems);
+
+    QDir().mkpath(m_folder);
+    QSaveFile file(m_folder + QStringLiteral("/mix.json"));
+    if (!file.open(QIODevice::WriteOnly))
+        return;
+    file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+    file.commit();
+}
+
+void SeparateController::restoreMixState(const QString &folder)
+{
+    QFile file(folder + QStringLiteral("/mix.json"));
+    if (!file.open(QIODevice::ReadOnly))
+        return;
+
+    const QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+    const QJsonObject stems = root.value(QStringLiteral("stems")).toObject();
+    for (int i = 0; i < m_paths.size(); ++i) {
+        const QString key = QFileInfo(m_paths.at(i)).completeBaseName();
+        if (!stems.contains(key))
+            continue;
+        const QJsonObject state = stems.value(key).toObject();
+        m_states[i].gainDb = static_cast<float>(state.value(QStringLiteral("gain")).toDouble());
+        m_states[i].muted = state.value(QStringLiteral("muted")).toBool();
+        m_states[i].solo = state.value(QStringLiteral("solo")).toBool();
+    }
 }
 
 bool SeparateController::hasStemModel() const
@@ -139,6 +207,7 @@ void SeparateController::rebuildStems()
         m_stems.append(stem);
     }
     emit stemsChanged();
+    scheduleMixStateSave();
 }
 
 void SeparateController::setGain(int index, double decibels)
@@ -249,6 +318,7 @@ void SeparateController::discover(const QUrl &input)
     m_folder = folder;
     m_paths = paths;
     m_states = QVector<StemState>(paths.size());
+    restoreMixState(folder);
     rebuildStems();
 }
 

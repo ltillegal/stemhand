@@ -26,6 +26,7 @@ private slots:
     void mixesStems();
     void cancelsSeparation();
     void playsStems();
+    void remembersMixState();
     void installsFromRegistry();
 };
 
@@ -198,6 +199,63 @@ void ControllersTest::playsStems()
     player.stop();
     QVERIFY(!player.playing());
     QCOMPARE(player.position(), 0.0);
+}
+
+void ControllersTest::remembersMixState()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString stems = directory.path() + QStringLiteral("/song_stems");
+    QVERIFY(QDir().mkpath(stems));
+
+    const int rate = 44100;
+    const qint64 frames = rate / 2;
+    for (const QString &name : {"drums", "bass", "other", "vocals"}) {
+        WavWriter writer;
+        QString error;
+        QVERIFY(writer.open(stems + QStringLiteral("/song_") + name + QStringLiteral(".wav"), 2,
+                            rate, frames, &error));
+        QVector<float> buffer(static_cast<int>(frames) * 2, 0.1f);
+        QVERIFY(writer.write(buffer.constData(), frames, &error));
+        writer.close();
+    }
+
+    ModelStore store;
+    store.setRoot(directory.path() + QStringLiteral("/models"));
+
+    const QUrl source = QUrl::fromLocalFile(directory.path() + QStringLiteral("/song.wav"));
+
+    {
+        SeparateController controller(&store);
+        controller.discover(source);
+        QCOMPARE(controller.stems().size(), 4);
+        controller.setGain(1, -6.0);
+        controller.toggleMute(0);
+        controller.toggleSolo(3);
+        QTest::qWait(500); // let the debounced save land
+    }
+
+    QVERIFY(QFileInfo::exists(stems + QStringLiteral("/mix.json")));
+
+    SeparateController reopened(&store);
+    reopened.discover(source);
+    const QVariantList restored = reopened.stems();
+    QCOMPARE(restored.size(), 4);
+
+    auto byName = [&](const QString &name) {
+        for (const QVariant &item : restored) {
+            const QVariantMap map = item.toMap();
+            if (map.value(QStringLiteral("name")).toString() == name)
+                return map;
+        }
+        return QVariantMap();
+    };
+
+    QCOMPARE(byName(QStringLiteral("drums")).value(QStringLiteral("muted")).toBool(), true);
+    QCOMPARE(byName(QStringLiteral("bass")).value(QStringLiteral("gain")).toDouble(), -6.0);
+    QCOMPARE(byName(QStringLiteral("vocals")).value(QStringLiteral("solo")).toBool(), true);
+    QCOMPARE(byName(QStringLiteral("other")).value(QStringLiteral("muted")).toBool(), false);
 }
 
 void ControllersTest::installsFromRegistry()
