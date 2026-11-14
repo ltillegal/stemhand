@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <QVector>
 
+#include <atomic>
 #include <functional>
 #include <memory>
 
@@ -38,9 +39,12 @@ public:
 
     // `interleaved` is 44.1 kHz stereo. Writes <base>_drums.wav and friends into
     // `outputDir`; `progress` is called with (chunkIndex, chunkCount).
+    // `cancel` is polled between chunks; a cancelled run removes the stems it
+    // has already written, so a half-separated folder never looks finished.
     bool separate(const QVector<float> &interleaved, const QString &outputDir,
                   const QString &baseName, QString *error,
-                  const std::function<void(int, int)> &progress = {});
+                  const std::function<void(int, int)> &progress = {},
+                  const std::atomic_bool *cancel = nullptr);
 
 private:
     struct Impl;

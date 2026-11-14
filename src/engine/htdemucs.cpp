@@ -82,7 +82,8 @@ bool HtdemucsSeparator::load(const QString &modelPath, int threads, QString *err
 
 bool HtdemucsSeparator::separate(const QVector<float> &interleaved, const QString &outputDir,
                                  const QString &baseName, QString *error,
-                                 const std::function<void(int, int)> &progress)
+                                 const std::function<void(int, int)> &progress,
+                                 const std::atomic_bool *cancel)
 {
 #ifdef STEMHAND_HAVE_ONNXRUNTIME
     if (!m_impl->loaded) {
@@ -200,7 +201,24 @@ bool HtdemucsSeparator::separate(const QVector<float> &interleaved, const QStrin
         return true;
     };
 
+    auto discardStems = [&] {
+        for (auto &writer : writers)
+            writer->close();
+        for (int stem = 0; stem < kStems; ++stem) {
+            const QString path = outputDir + QLatin1Char('/') + baseName + QLatin1Char('_')
+                + names.at(stem) + QStringLiteral(".wav");
+            QFile::remove(path);
+        }
+    };
+
     for (int index = 0; index < static_cast<int>(starts.size()); ++index) {
+        if (cancel && cancel->load()) {
+            discardStems();
+            if (error)
+                *error = QStringLiteral("cancelled");
+            return false;
+        }
+
         const int start = starts[index];
 
         // Normalise this segment, zero-padding past the end of the track.

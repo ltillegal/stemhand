@@ -3,6 +3,7 @@
 #include "engine/wavreader.h"
 #include "engine/wavwriter.h"
 #include "modelstore.h"
+#include "separatecontroller.h"
 #include "registry.h"
 #include "updatecontroller.h"
 
@@ -22,6 +23,7 @@ class ControllersTest : public QObject
 private slots:
     void denoisesVoice();
     void mixesStems();
+    void cancelsSeparation();
     void installsFromRegistry();
 };
 
@@ -134,6 +136,31 @@ void ControllersTest::mixesStems()
     QVERIFY(renderAndRead(states, QStringLiteral("hot.wav"), &mixed, &gain));
     QVERIFY(gain < 1.0);
     QVERIFY(std::fabs(mixed.at(200) - 0.99f) < 2e-3f);
+}
+
+void ControllersTest::cancelsSeparation()
+{
+    const QString storeRoot = qEnvironmentVariable("STEMHAND_TEST_MODELS");
+    const QString input = qEnvironmentVariable("STEMHAND_TEST_INPUT");
+    if (storeRoot.isEmpty() || input.isEmpty())
+        QSKIP("set STEMHAND_TEST_MODELS and STEMHAND_TEST_INPUT to run this test");
+
+    ModelStore store;
+    store.setRoot(storeRoot);
+    store.rescan();
+
+    SeparateController controller(&store);
+    if (!controller.hasStemModel())
+        QSKIP("no htdemucs model installed");
+
+    QSignalSpy finished(&controller, &SeparateController::finished);
+    controller.run(QUrl::fromLocalFile(input));
+    controller.cancel();
+
+    QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 120000);
+    QCOMPARE(finished.count(), 0);
+    QVERIFY(controller.stems().isEmpty());
+    QVERIFY(controller.message().isEmpty());
 }
 
 void ControllersTest::installsFromRegistry()

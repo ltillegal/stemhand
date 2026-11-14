@@ -2,6 +2,8 @@
 
 #include "engine/stemmixer.h"
 
+#include <atomic>
+
 #include <QObject>
 #include <QStringList>
 #include <QUrl>
@@ -33,6 +35,7 @@ public:
     bool hasStemModel() const;
 
     Q_INVOKABLE void run(const QUrl &input);
+    Q_INVOKABLE void cancel();
     Q_INVOKABLE void setGain(int index, double decibels);
     Q_INVOKABLE void toggleMute(int index);
     Q_INVOKABLE void toggleSolo(int index);
@@ -61,6 +64,7 @@ private:
     bool m_busy = false;
     QString m_message;
     QString m_error;
+    std::atomic_bool m_cancel{false};
     QVariantList m_stems;
     QStringList m_paths;
     QVector<StemState> m_states;

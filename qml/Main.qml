@@ -127,11 +127,11 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
 
                 Button {
-                    text: qsTr("Separate 4 stems")
+                    text: separate.busy ? qsTr("Cancel") : qsTr("Separate 4 stems")
                     flat: true
                     visible: audio.hasAudio
-                    enabled: separate.hasStemModel && !separate.busy && !denoise.busy
-                    onClicked: separate.run(audio.path)
+                    enabled: separate.hasStemModel && !denoise.busy
+                    onClicked: separate.busy ? separate.cancel() : separate.run(audio.path)
                 }
 
                 Button {

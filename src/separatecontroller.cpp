@@ -30,7 +30,8 @@ struct JobResult {
 };
 
 JobResult runJob(const QString &input, const QString &folder, const QString &modelPath,
-                 const std::function<void(int, int)> &progress)
+                 const std::function<void(int, int)> &progress,
+                 const std::atomic_bool *cancel)
 {
     JobResult result;
     result.folder = folder;
@@ -51,7 +52,7 @@ JobResult runJob(const QString &input, const QString &folder, const QString &mod
     const QString base = QFileInfo(input).completeBaseName();
     QElapsedTimer timer;
     timer.start();
-    if (!separator.separate(interleaved, folder, base, &result.error, progress))
+    if (!separator.separate(interleaved, folder, base, &result.error, progress, cancel))
         return result;
     result.wallSeconds = timer.elapsed() / 1000.0;
 
@@ -112,6 +113,14 @@ void SeparateController::openStemsFolder() const
     if (m_folder.isEmpty())
         return;
     QDesktopServices::openUrl(QUrl::fromLocalFile(m_folder));
+}
+
+void SeparateController::cancel()
+{
+    if (!m_busy)
+        return;
+    m_cancel.store(true);
+    setMessage(tr("Cancelling…"));
 }
 
 void SeparateController::rebuildStems()
@@ -275,6 +284,7 @@ void SeparateController::run(const QUrl &input)
     const QString folder = info.absolutePath() + QLatin1Char('/') + info.completeBaseName()
         + QStringLiteral("_stems");
 
+    m_cancel.store(false);
     setError(QString());
     setMessage(tr("Separating with %1…").arg(modelLabel));
     setBusy(true);
@@ -289,6 +299,9 @@ void SeparateController::run(const QUrl &input)
         setBusy(false);
 
         if (!result.ok) {
+            // A cancelled job leaves an empty folder behind; a failed one may
+            // leave nothing at all. Neither should look like a finished job.
+            QDir().rmdir(result.folder);
             setMessage(QString());
             setError(result.error);
             return;
@@ -311,9 +324,9 @@ void SeparateController::run(const QUrl &input)
     });
 
     watcher->setFuture(QtConcurrent::run([this, source, folder, modelPath] {
-        return runJob(source, folder, modelPath, [this](int done, int total) {
-            emit progress(done, total);
-        });
+        return runJob(source, folder, modelPath,
+                      [this](int done, int total) { emit progress(done, total); },
+                      &m_cancel);
     }));
 }
 

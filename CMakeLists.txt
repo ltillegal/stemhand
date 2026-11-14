@@ -124,11 +124,13 @@ if(Qt6Test_FOUND)
         src/keys.cpp
         src/modelstore.cpp
         src/denoisecontroller.cpp
+        src/separatecontroller.cpp
         src/updatecontroller.cpp
         src/registry.cpp
         src/engine/audioio.cpp
         src/engine/fft.cpp
         src/engine/gtcrn.cpp
+        src/engine/htdemucs.cpp
         src/engine/wavwriter.cpp
         src/engine/wavreader.cpp
         src/engine/stemmixer.cpp
