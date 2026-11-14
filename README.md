@@ -36,7 +36,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j
 ```
 
-macOS (цель), после `brew install qt ffmpeg libsodium cmake`:
+macOS (цель), после `brew install qt ffmpeg libsodium cmake pkg-config`:
 
 ```bash
 cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
