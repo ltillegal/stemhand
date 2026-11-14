@@ -8,7 +8,7 @@
 #include <memory>
 #include <vector>
 
-namespace photone {
+namespace stemhand {
 
 // Driver for the GTCRN speech denoiser: 16 kHz, 512-point STFT with a 256 hop,
 // complex spectrum in, complex spectrum out, three recurrent caches that must
@@ -32,4 +32,4 @@ private:
     std::unique_ptr<Impl> m_impl;
 };
 
-} // namespace photone
+} // namespace stemhand

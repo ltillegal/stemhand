@@ -3,7 +3,7 @@
 #include <QPainter>
 #include <QPainterPath>
 
-namespace photone {
+namespace stemhand {
 
 WaveformItem::WaveformItem(QQuickItem *parent)
     : QQuickPaintedItem(parent)
@@ -86,4 +86,4 @@ void WaveformItem::paint(QPainter *painter)
     }
 }
 
-} // namespace photone
+} // namespace stemhand

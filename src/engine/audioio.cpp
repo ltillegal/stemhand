@@ -7,7 +7,7 @@
 #include <cstring>
 #include <cmath>
 
-namespace photone {
+namespace stemhand {
 
 bool decodeToMono(const QString &path, int sampleRate, QVector<float> *samples, QString *error)
 {
@@ -115,4 +115,4 @@ float preventClipping(QVector<float> *samples, float ceiling)
     return gain;
 }
 
-} // namespace photone
+} // namespace stemhand

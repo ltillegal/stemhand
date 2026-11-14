@@ -7,7 +7,7 @@
 #include <QString>
 #include <QUrl>
 
-namespace photone {
+namespace stemhand {
 
 class ModelStore;
 
@@ -59,4 +59,4 @@ bool installModel(const QUrl &manifestUrl, const QString &storeRoot, QString *in
 QString readRegistryUrl(const QString &storeRoot);
 void writeRegistryUrl(const QString &storeRoot, const QUrl &url);
 
-} // namespace photone
+} // namespace stemhand

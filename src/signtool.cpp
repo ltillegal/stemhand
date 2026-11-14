@@ -1,8 +1,8 @@
-// photone-sign — developer tooling for the model store.
+// stemhand-sign — developer tooling for the model store.
 //
-//   photone-sign keygen <private-key-file>
-//   photone-sign sign <model-dir> <private-key-file>
-//   photone-sign verify <model-dir> <public-key-hex-or-file>
+//   stemhand-sign keygen <private-key-file>
+//   stemhand-sign sign <model-dir> <private-key-file>
+//   stemhand-sign verify <model-dir> <public-key-hex-or-file>
 //
 // The signature covers manifest.json byte-for-byte, and the manifest pins the
 // SHA-256 of every weight file, so one signature authenticates the directory.
@@ -19,7 +19,7 @@
 
 #include <sodium.h>
 
-using namespace photone;
+using namespace stemhand;
 
 namespace {
 
@@ -27,9 +27,9 @@ int usage()
 {
     std::fprintf(stderr,
                  "usage:\n"
-                 "  photone-sign keygen <private-key-file>\n"
-                 "  photone-sign sign   <model-dir> <private-key-file>\n"
-                 "  photone-sign verify <model-dir> <public-key-hex-or-file>\n");
+                 "  stemhand-sign keygen <private-key-file>\n"
+                 "  stemhand-sign sign   <model-dir> <private-key-file>\n"
+                 "  stemhand-sign verify <model-dir> <public-key-hex-or-file>\n");
     return 64;
 }
 

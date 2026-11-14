@@ -2,7 +2,7 @@
 # Creates the development signing keypair once.
 #
 # The public half is committed (keys/dev.pub) and compiled into the app; the
-# private half lives outside the repository and is used only by photone-sign.
+# private half lives outside the repository and is used only by stemhand-sign.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

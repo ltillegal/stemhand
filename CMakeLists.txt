@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Photone VERSION 0.1.0 LANGUAGES CXX)
+project(Stemhand VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,8 +23,8 @@ pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium)
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/keys/dev.pub")
     message(FATAL_ERROR "keys/dev.pub is missing. Run scripts/dev-keys.sh to create it.")
 endif()
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/keys/dev.pub" PHOTONE_PINNED_KEY)
-string(STRIP "${PHOTONE_PINNED_KEY}" PHOTONE_PINNED_KEY)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/keys/dev.pub" STEMHAND_PINNED_KEY)
+string(STRIP "${STEMHAND_PINNED_KEY}" STEMHAND_PINNED_KEY)
 configure_file(cmake/pinned_key.h.in "${CMAKE_CURRENT_BINARY_DIR}/pinned_key.h" @ONLY)
 
 # ONNX Runtime is optional at configure time: the shell, the model store and
@@ -38,7 +38,7 @@ find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h
     HINTS "${ONNXRUNTIME_ROOT}/include" "${ONNXRUNTIME_ROOT}/Headers")
 find_library(ONNXRUNTIME_LIBRARY onnxruntime HINTS "${ONNXRUNTIME_ROOT}/lib")
 
-set(PHOTONE_ENGINE_SOURCES
+set(STEMHAND_ENGINE_SOURCES
     src/cli.cpp
     src/engine/audioio.cpp
     src/engine/fft.cpp
@@ -51,7 +51,7 @@ else()
     message(WARNING "ONNX Runtime not found — the denoise engine will be stubbed")
 endif()
 
-qt_add_executable(photone
+qt_add_executable(stemhand
     src/main.cpp
     src/keys.cpp
     src/manifest.cpp
@@ -61,17 +61,17 @@ qt_add_executable(photone
     src/denoisecontroller.cpp
     src/updatecontroller.cpp
     src/registry.cpp
-    ${PHOTONE_ENGINE_SOURCES}
+    ${STEMHAND_ENGINE_SOURCES}
 )
 
-target_include_directories(photone PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" src)
+target_include_directories(stemhand PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" src)
 
-target_compile_definitions(photone PRIVATE
-    PHOTONE_VERSION="${PROJECT_VERSION}"
-    PHOTONE_MODEL_ENGINE_ABI=1
+target_compile_definitions(stemhand PRIVATE
+    STEMHAND_VERSION="${PROJECT_VERSION}"
+    STEMHAND_MODEL_ENGINE_ABI=1
 )
 
-qt_add_resources(photone "qml"
+qt_add_resources(stemhand "qml"
     PREFIX "/"
     BASE "${CMAKE_CURRENT_SOURCE_DIR}/qml"
     FILES
@@ -80,40 +80,40 @@ qt_add_resources(photone "qml"
         qml/Wave.qml
 )
 
-target_link_libraries(photone PRIVATE
+target_link_libraries(stemhand PRIVATE
     Qt6::Core Qt6::Gui Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Concurrent
     PkgConfig::SODIUM
 )
 
 if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
-    target_compile_definitions(photone PRIVATE PHOTONE_HAVE_ONNXRUNTIME=1)
-    target_include_directories(photone PRIVATE "${ONNXRUNTIME_INCLUDE_DIR}")
-    target_link_libraries(photone PRIVATE "${ONNXRUNTIME_LIBRARY}")
+    target_compile_definitions(stemhand PRIVATE STEMHAND_HAVE_ONNXRUNTIME=1)
+    target_include_directories(stemhand PRIVATE "${ONNXRUNTIME_INCLUDE_DIR}")
+    target_link_libraries(stemhand PRIVATE "${ONNXRUNTIME_LIBRARY}")
 endif()
 
 if(APPLE)
-    set_target_properties(photone PROPERTIES
+    set_target_properties(stemhand PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_BUNDLE_NAME "Photone"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "dev.photone.app"
+        MACOSX_BUNDLE_BUNDLE_NAME "Stemhand"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "dev.stemhand.app"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
     )
 endif()
 
 # Developer tool: generate keys, sign and verify model manifests.
-add_executable(photone-sign src/signtool.cpp src/keys.cpp src/manifest.cpp)
-target_include_directories(photone-sign PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}")
-target_compile_definitions(photone-sign PRIVATE PHOTONE_MODEL_ENGINE_ABI=1)
-target_link_libraries(photone-sign PRIVATE Qt6::Core PkgConfig::SODIUM)
+add_executable(stemhand-sign src/signtool.cpp src/keys.cpp src/manifest.cpp)
+target_include_directories(stemhand-sign PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}")
+target_compile_definitions(stemhand-sign PRIVATE STEMHAND_MODEL_ENGINE_ABI=1)
+target_link_libraries(stemhand-sign PRIVATE Qt6::Core PkgConfig::SODIUM)
 
-install(TARGETS photone BUNDLE DESTINATION . RUNTIME DESTINATION bin)
+install(TARGETS stemhand BUNDLE DESTINATION . RUNTIME DESTINATION bin)
 
 # Tests need the same objects as the app, minus main.cpp and the QML layer.
 enable_testing()
 find_package(Qt6 6.5 QUIET COMPONENTS Test)
 if(Qt6Test_FOUND)
-    qt_add_executable(photone-tests
+    qt_add_executable(stemhand-tests
         tests/controllers_test.cpp
         src/manifest.cpp
         src/keys.cpp
@@ -125,18 +125,18 @@ if(Qt6Test_FOUND)
         src/engine/fft.cpp
         src/engine/gtcrn.cpp
     )
-    target_include_directories(photone-tests PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}")
-    target_compile_definitions(photone-tests PRIVATE PHOTONE_MODEL_ENGINE_ABI=1)
-    target_link_libraries(photone-tests PRIVATE
+    target_include_directories(stemhand-tests PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}")
+    target_compile_definitions(stemhand-tests PRIVATE STEMHAND_MODEL_ENGINE_ABI=1)
+    target_link_libraries(stemhand-tests PRIVATE
         Qt6::Core Qt6::Gui Qt6::Network Qt6::Test Qt6::Concurrent PkgConfig::SODIUM
     )
     if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
-        target_compile_definitions(photone-tests PRIVATE PHOTONE_HAVE_ONNXRUNTIME=1)
-        target_include_directories(photone-tests PRIVATE "${ONNXRUNTIME_INCLUDE_DIR}")
-        target_link_libraries(photone-tests PRIVATE "${ONNXRUNTIME_LIBRARY}")
+        target_compile_definitions(stemhand-tests PRIVATE STEMHAND_HAVE_ONNXRUNTIME=1)
+        target_include_directories(stemhand-tests PRIVATE "${ONNXRUNTIME_INCLUDE_DIR}")
+        target_link_libraries(stemhand-tests PRIVATE "${ONNXRUNTIME_LIBRARY}")
     endif()
-    add_test(NAME controllers COMMAND photone-tests)
+    add_test(NAME controllers COMMAND stemhand-tests)
     set_tests_properties(controllers PROPERTIES
-        ENVIRONMENT "PHOTONE_TEST_MODELS=${CMAKE_CURRENT_SOURCE_DIR}/build/models;PHOTONE_TEST_INPUT=${CMAKE_CURRENT_SOURCE_DIR}/models-dev/gtcrn/mix.wav;PHOTONE_TEST_REGISTRY=${CMAKE_CURRENT_SOURCE_DIR}/build/registry/index.json"
+        ENVIRONMENT "STEMHAND_TEST_MODELS=${CMAKE_CURRENT_SOURCE_DIR}/build/models;STEMHAND_TEST_INPUT=${CMAKE_CURRENT_SOURCE_DIR}/models-dev/gtcrn/mix.wav;STEMHAND_TEST_REGISTRY=${CMAKE_CURRENT_SOURCE_DIR}/build/registry/index.json"
     )
 endif()

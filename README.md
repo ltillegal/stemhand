@@ -1,33 +1,33 @@
-# Photone
+# Stemhand
 
 Локальное приложение для разделения и очистки аудио: стемы из готового микса,
 барабаны, голоса, денойзинг — всё на своей машине, без загрузок наружу.
 Целевая платформа — macOS на Apple Silicon (M1, Sequoia); разработка идёт на Linux.
 
-![Photone](docs/screenshot.png)
+![Stemhand](docs/screenshot.png)
 
 ## Что работает
 
 **M0 — оболочка и доверие к моделям:**
 
-- Хранилище `~/Library/Application Support/photone/models/<id>/<version>/`
-  (Linux: `~/.local/share/photone/models`).
+- Хранилище `~/Library/Application Support/stemhand/models/<id>/<version>/`
+  (Linux: `~/.local/share/stemhand/models`).
 - Ed25519-подпись покрывает `manifest.json` байт-в-байт, манифест пинит SHA-256
   каждого файла. Одна подпись аутентифицирует весь каталог.
 - Статусы `ok / unverified / corrupt / incompatible / broken`; подмена байта в
   весах ловится хешем, подмена манифеста — подписью.
-- Волна из `ffmpeg`, CLI без дисплея: `photone --scan [--json]`.
+- Волна из `ffmpeg`, CLI без дисплея: `stemhand --scan [--json]`.
 
 **M1 — первый настоящий звук:**
 
 - ONNX Runtime в C++, драйвер `gtcrn` (16 кГц, STFT 512/256, sqrt-Hann, WOLA).
 - Модель GTCRN: 523 КБ, 0.05M параметров, MIT включая веса.
-- CLI: `photone --denoise <in> <out>`; в приложении — кнопка **Denoise voice**
+- CLI: `stemhand --denoise <in> <out>`; в приложении — кнопка **Denoise voice**
   и клавиша `D`.
 
 **M2 — обновление моделей по сети:**
 
-- `photone --update <index-url>` — проверяет индекс, ставит недостающее.
+- `stemhand --update <index-url>` — проверяет индекс, ставит недостающее.
 - В приложении — кнопка **Update models**; адрес реестра запоминается в
   `registry.url` внутри хранилища, а не в глобальном конфиге.
 - Установка атомарная: скачивание в `.incoming/`, проверка подписи и хешей,
@@ -70,7 +70,7 @@ cmake -S . -B build \
   -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
   -DONNXRUNTIME_ROOT="$(brew --prefix onnxruntime)"
 cmake --build build -j
-open build/photone.app
+open build/stemhand.app
 ```
 
 ONNX Runtime необязателен при конфигурации: без него собирается всё, кроме
@@ -93,7 +93,7 @@ ONNX Runtime необязателен при конфигурации: без н
 
 ```bash
 ./scripts/make-registry.sh 1.1.0            # локальный реестр для тестов
-./build/photone --update "file://$PWD/build/registry/index.json" --root build/upg
+./build/stemhand --update "file://$PWD/build/registry/index.json" --root build/upg
 # update   denoise/gtcrn 1.1.0 (from 1.0.0)
 # done     build/upg/denoise/gtcrn/1.1.0
 ```
@@ -103,10 +103,10 @@ ONNX Runtime необязателен при конфигурации: без н
 проверки, а не подмену модели.
 
 ```bash
-./build/photone --update https://example.org/photone/index.json --check  # только план
-./build/photone --versions                                  # что установлено
-./build/photone --prefer denoise/gtcrn@1.0.0                # закрепить версию
-./build/photone --release denoise/gtcrn                     # снять закрепление
+./build/stemhand --update https://example.org/stemhand/index.json --check  # только план
+./build/stemhand --versions                                  # что установлено
+./build/stemhand --prefer denoise/gtcrn@1.0.0                # закрепить версию
+./build/stemhand --release denoise/gtcrn                     # снять закрепление
 ```
 
 ## Модели
@@ -115,12 +115,12 @@ ONNX Runtime необязателен при конфигурации: без н
 # GTCRN, 16 кГц денойзер речи (523 КБ)
 curl -L -o gtcrn_simple.onnx \
   https://huggingface.co/bitsydarel/gtcrn-onnx/resolve/main/gtcrn_simple.onnx
-./scripts/install-gtcrn.sh gtcrn_simple.onnx ~/.local/share/photone/models
+./scripts/install-gtcrn.sh gtcrn_simple.onnx ~/.local/share/stemhand/models
 ```
 
 ```bash
-./build/photone --denoise interview.wav clean.wav --root ~/.local/share/photone/models
-./build/photone --scan --json
+./build/stemhand --denoise interview.wav clean.wav --root ~/.local/share/stemhand/models
+./build/stemhand --scan --json
 ```
 
 Формат манифеста — см. ниже; поле `driver` задаёт контракт рантайма
@@ -146,7 +146,7 @@ curl -L -o gtcrn_simple.onnx \
 }
 ```
 
-Подпись: `photone-sign sign <model-dir> <private-key>` создаёт `manifest.json.sig`.
+Подпись: `stemhand-sign sign <model-dir> <private-key>` создаёт `manifest.json.sig`.
 Публичный ключ зашит в бинарь (`keys/dev.pub` → `cmake/pinned_key.h.in`),
 приватный лежит в `.dev-keys/` и в git не попадает.
 

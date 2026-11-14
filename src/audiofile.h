@@ -7,7 +7,7 @@
 #include <QVariantList>
 #include <QUrl>
 
-namespace photone {
+namespace stemhand {
 
 // Reads what the UI needs to draw a file: metadata via ffprobe, and a
 // downsampled peak envelope via ffmpeg. Decoding at 8 kHz mono is ~100x
@@ -72,4 +72,4 @@ private:
     QByteArray m_buffer;
 };
 
-} // namespace photone
+} // namespace stemhand

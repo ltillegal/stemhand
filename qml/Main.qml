@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Dialogs
 import QtQuick.Layouts
-import Photone 1.0
+import Stemhand 1.0
 
 ApplicationWindow {
     id: window
@@ -14,7 +14,7 @@ ApplicationWindow {
     minimumHeight: 560
     visible: true
     color: pal.bg
-    title: audio.hasAudio ? audio.fileName + " — Photone" : "Photone"
+    title: audio.hasAudio ? audio.fileName + " — Stemhand" : "Stemhand"
 
     readonly property var pal: ({
         bg: "#0a0b0e",
@@ -99,7 +99,7 @@ ApplicationWindow {
                 }
 
                 Text {
-                    text: qsTr("PHOTONE")
+                    text: qsTr("STEMHAND")
                     color: pal.text
                     font.pixelSize: 13
                     font.weight: Font.DemiBold

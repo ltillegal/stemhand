@@ -3,7 +3,7 @@
 #include <QString>
 #include <QUrl>
 
-namespace photone {
+namespace stemhand {
 
 struct DenoiseRequest {
     QString input;
@@ -30,4 +30,4 @@ int runPrefer(const QString &reference, const QString &storeRoot);
 int runRelease(const QString &id, const QString &storeRoot);
 int runVersions(const QString &storeRoot);
 
-} // namespace photone
+} // namespace stemhand

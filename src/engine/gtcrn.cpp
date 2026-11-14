@@ -8,11 +8,11 @@
 #include <cstring>
 #include <numbers>
 
-#ifdef PHOTONE_HAVE_ONNXRUNTIME
+#ifdef STEMHAND_HAVE_ONNXRUNTIME
 #include <onnxruntime_cxx_api.h>
 #endif
 
-namespace photone {
+namespace stemhand {
 
 namespace {
 constexpr int kFftSize = 512;
@@ -51,8 +51,8 @@ struct GtcrnDenoiser::Impl
     std::vector<float> interCache;
     Fft fft{kFftSize};
 
-#ifdef PHOTONE_HAVE_ONNXRUNTIME
-    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "photone"};
+#ifdef STEMHAND_HAVE_ONNXRUNTIME
+    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "stemhand"};
     std::unique_ptr<Ort::Session> session;
     std::vector<std::string> inputNames;
     std::vector<std::string> outputNames;
@@ -71,7 +71,7 @@ GtcrnDenoiser::~GtcrnDenoiser() = default;
 
 bool GtcrnDenoiser::load(const QString &modelPath, int threads, QString *error)
 {
-#ifdef PHOTONE_HAVE_ONNXRUNTIME
+#ifdef STEMHAND_HAVE_ONNXRUNTIME
     if (!QFileInfo::exists(modelPath)) {
         if (error)
             *error = QStringLiteral("model file does not exist: %1").arg(modelPath);
@@ -118,7 +118,7 @@ bool GtcrnDenoiser::load(const QString &modelPath, int threads, QString *error)
 
 bool GtcrnDenoiser::process(std::vector<float> &samples, QString *error)
 {
-#ifdef PHOTONE_HAVE_ONNXRUNTIME
+#ifdef STEMHAND_HAVE_ONNXRUNTIME
     if (!m_impl->loaded) {
         if (error)
             *error = QStringLiteral("model is not loaded");
@@ -242,4 +242,4 @@ bool GtcrnDenoiser::process(std::vector<float> &samples, QString *error)
 #endif
 }
 
-} // namespace photone
+} // namespace stemhand

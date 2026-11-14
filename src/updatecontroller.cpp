@@ -8,7 +8,7 @@
 #include <QUrl>
 #include <QtConcurrent/QtConcurrentRun>
 
-namespace photone {
+namespace stemhand {
 namespace {
 
 struct UpdateResult {
@@ -66,7 +66,7 @@ void UpdateController::checkAndInstall()
 
     const QString registry = registryUrl();
     if (registry.isEmpty()) {
-        m_error = tr("No registry configured. Run: photone --update <index-url>");
+        m_error = tr("No registry configured. Run: stemhand --update <index-url>");
         emit errorChanged();
         return;
     }
@@ -112,4 +112,4 @@ void UpdateController::checkAndInstall()
     }));
 }
 
-} // namespace photone
+} // namespace stemhand

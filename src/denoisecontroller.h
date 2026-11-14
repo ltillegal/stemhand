@@ -5,7 +5,7 @@
 
 class QFutureWatcherBase;
 
-namespace photone {
+namespace stemhand {
 
 class ModelStore;
 
@@ -31,7 +31,7 @@ public:
     QString lastOutput() const { return m_lastOutput; }
     bool hasVoiceModel() const;
 
-    // Writes "<name> (photone denoised).wav" next to the input.
+    // Writes "<name> (stemhand denoised).wav" next to the input.
     Q_INVOKABLE QString suggestedOutput(const QUrl &input) const;
     Q_INVOKABLE void run(const QUrl &input);
 
@@ -54,4 +54,4 @@ private:
     QString m_lastOutput;
 };
 
-} // namespace photone
+} // namespace stemhand

@@ -2,7 +2,7 @@
 
 #include <QObject>
 
-namespace photone {
+namespace stemhand {
 
 class ModelStore;
 
@@ -43,4 +43,4 @@ private:
     QString m_error;
 };
 
-} // namespace photone
+} // namespace stemhand

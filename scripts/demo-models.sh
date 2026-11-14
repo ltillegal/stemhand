@@ -5,11 +5,11 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 out="${1:-$root/build/demo-models}"
-sign="${2:-$root/build/photone-sign}"
+sign="${2:-$root/build/stemhand-sign}"
 key="${3:-$root/.dev-keys/dev-signing.key}"
 
 if [ ! -x "$sign" ]; then
-    echo "photone-sign not built at $sign" >&2
+    echo "stemhand-sign not built at $sign" >&2
     exit 1
 fi
 if [ ! -f "$key" ]; then

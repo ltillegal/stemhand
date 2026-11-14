@@ -13,7 +13,7 @@
 
 #include <algorithm>
 
-namespace photone {
+namespace stemhand {
 namespace {
 
 constexpr qint64 kMaxManifestBytes = 4 * 1024 * 1024;
@@ -246,11 +246,11 @@ void ModelStore::loadEntry(const QString &versionDir)
         }
     }
 
-    if (entry.manifest.engineAbi != PHOTONE_MODEL_ENGINE_ABI) {
+    if (entry.manifest.engineAbi != STEMHAND_MODEL_ENGINE_ABI) {
         entry.status = ModelStatus::Incompatible;
         entry.detail = QStringLiteral("model needs engine ABI %1, this build is %2")
                            .arg(entry.manifest.engineAbi)
-                           .arg(PHOTONE_MODEL_ENGINE_ABI);
+                           .arg(STEMHAND_MODEL_ENGINE_ABI);
         m_entries.append(entry);
         return;
     }
@@ -390,4 +390,4 @@ void ModelStore::openRootInFileManager()
     QDesktopServices::openUrl(QUrl::fromLocalFile(m_root));
 }
 
-} // namespace photone
+} // namespace stemhand

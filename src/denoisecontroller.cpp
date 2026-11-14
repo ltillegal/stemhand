@@ -14,7 +14,7 @@
 
 #include <cstdio>
 
-namespace photone {
+namespace stemhand {
 namespace {
 
 struct JobResult {
@@ -83,7 +83,7 @@ QString DenoiseController::suggestedOutput(const QUrl &input) const
 {
     const QFileInfo info(input.toLocalFile());
     return info.absolutePath() + QLatin1Char('/') + info.completeBaseName()
-        + QStringLiteral(" (photone denoised).wav");
+        + QStringLiteral(" (stemhand denoised).wav");
 }
 
 void DenoiseController::setBusy(bool busy)
@@ -171,4 +171,4 @@ void DenoiseController::run(const QUrl &input)
     }));
 }
 
-} // namespace photone
+} // namespace stemhand

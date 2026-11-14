@@ -16,7 +16,7 @@
 
 #include <sodium.h>
 
-namespace photone {
+namespace stemhand {
 namespace {
 
 struct ResolvedModel {
@@ -98,7 +98,7 @@ bool resolveModel(const DenoiseRequest &request, ResolvedModel *resolved, QStrin
 int runDenoise(const DenoiseRequest &request)
 {
     if (request.input.isEmpty() || request.output.isEmpty()) {
-        std::fprintf(stderr, "photone --denoise needs an input and an output path\n");
+        std::fprintf(stderr, "stemhand --denoise needs an input and an output path\n");
         return 64;
     }
     if (!QFileInfo::exists(request.input)) {
@@ -163,7 +163,7 @@ int runDenoise(const DenoiseRequest &request)
 int runUpdate(const UpdateRequest &request)
 {
     if (!request.indexUrl.isValid()) {
-        std::fprintf(stderr, "photone --update needs a valid index URL\n");
+        std::fprintf(stderr, "stemhand --update needs a valid index URL\n");
         return 64;
     }
 
@@ -283,4 +283,4 @@ int runVersions(const QString &storeRoot)
     return 0;
 }
 
-} // namespace photone
+} // namespace stemhand

@@ -8,7 +8,7 @@
 #include <QString>
 #include <QVariantList>
 
-namespace photone {
+namespace stemhand {
 
 enum class ModelStatus {
     Ok,           // signature valid, all files match, ABI compatible
@@ -81,4 +81,4 @@ private:
     QString m_lastError;
 };
 
-} // namespace photone
+} // namespace stemhand

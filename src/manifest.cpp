@@ -7,7 +7,7 @@
 
 #include <cmath>
 
-namespace photone {
+namespace stemhand {
 namespace {
 
 void fail(QString *error, const QString &message)
@@ -120,4 +120,4 @@ std::optional<ModelManifest> ModelManifest::parse(const QByteArray &json, QStrin
     return manifest;
 }
 
-} // namespace photone
+} // namespace stemhand

@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace photone {
+namespace stemhand {
 
 namespace {
 constexpr double kTwoPi = 6.283185307179586476925286766559;
@@ -72,4 +72,4 @@ void Fft::inverse(std::complex<float> *data) const
         data[i] = std::conj(data[i]) * scale;
 }
 
-} // namespace photone
+} // namespace stemhand

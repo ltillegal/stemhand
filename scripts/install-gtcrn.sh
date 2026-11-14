@@ -11,9 +11,9 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 onnx="${1:?usage: install-gtcrn.sh <gtcrn_simple.onnx> [store-root] [signing-key]}"
 store="${2:-$root/build/models}"
 key="${3:-$root/.dev-keys/dev-signing.key}"
-sign="$root/build/photone-sign"
+sign="$root/build/stemhand-sign"
 
-[ -x "$sign" ] || { echo "photone-sign not built at $sign" >&2; exit 1; }
+[ -x "$sign" ] || { echo "stemhand-sign not built at $sign" >&2; exit 1; }
 [ -f "$onnx" ] || { echo "no such onnx: $onnx" >&2; exit 1; }
 [ -f "$key" ] || { echo "no signing key at $key — run scripts/dev-keys.sh" >&2; exit 1; }
 

@@ -5,7 +5,7 @@
 #
 # The registry is a plain directory: index.json plus one directory per model
 # version holding manifest.json, manifest.json.sig and the weights. Pointing
-# photone at it with file:// exercises exactly the same code path as https://.
+# stemhand at it with file:// exercises exactly the same code path as https://.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -13,9 +13,9 @@ version="${1:-1.1.0}"
 out="${2:-$root/build/registry}"
 onnx="${3:-$root/models-dev/gtcrn/gtcrn_simple.onnx}"
 key="$root/.dev-keys/dev-signing.key"
-sign="$root/build/photone-sign"
+sign="$root/build/stemhand-sign"
 
-[ -x "$sign" ] || { echo "photone-sign not built" >&2; exit 1; }
+[ -x "$sign" ] || { echo "stemhand-sign not built" >&2; exit 1; }
 [ -f "$onnx" ] || { echo "no onnx at $onnx" >&2; exit 1; }
 
 dir="$out/denoise/gtcrn/$version"

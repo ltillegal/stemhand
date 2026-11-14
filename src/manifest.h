@@ -7,7 +7,7 @@
 
 #include <optional>
 
-namespace photone {
+namespace stemhand {
 
 struct ModelFile {
     QString path;   // relative to the model version directory, no traversal
@@ -45,4 +45,4 @@ struct ModelManifest {
     static std::optional<ModelManifest> parse(const QByteArray &json, QString *error);
 };
 
-} // namespace photone
+} // namespace stemhand

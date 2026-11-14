@@ -5,7 +5,7 @@
 #include <QVariantList>
 #include <QVector>
 
-namespace photone {
+namespace stemhand {
 
 // Draws a min/max peak envelope. Painted in C++ rather than QML Canvas so the
 // per-pixel pass stays cheap while the file list and transport stay responsive.
@@ -42,4 +42,4 @@ private:
     QColor m_gridColor{0xff, 0xff, 0xff, 0x14};
 };
 
-} // namespace photone
+} // namespace stemhand

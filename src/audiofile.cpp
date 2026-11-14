@@ -9,7 +9,7 @@
 
 #include <cmath>
 
-namespace photone {
+namespace stemhand {
 namespace {
 
 constexpr int kPreviewRate = 8000;
@@ -220,4 +220,4 @@ void AudioFile::finishDecode()
     emit peaksChanged();
 }
 
-} // namespace photone
+} // namespace stemhand

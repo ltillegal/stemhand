@@ -3,7 +3,7 @@
 #include <complex>
 #include <vector>
 
-namespace photone {
+namespace stemhand {
 
 // Radix-2 FFT for the 512-point STFT GTCRN expects.
 //
@@ -31,4 +31,4 @@ private:
     std::vector<std::complex<float>> m_twiddles;
 };
 
-} // namespace photone
+} // namespace stemhand

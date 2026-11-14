@@ -7,7 +7,7 @@
 
 #include <sodium.h>
 
-namespace photone {
+namespace stemhand {
 
 QString sha256File(const QString &path)
 {
@@ -42,7 +42,7 @@ bool verifyDetached(const QByteArray &message, const QByteArray &signature,
 
 QString pinnedKeyHex()
 {
-    return QString::fromLatin1(PHOTONE_PINNED_KEY_HEX);
+    return QString::fromLatin1(STEMHAND_PINNED_KEY_HEX);
 }
 
-} // namespace photone
+} // namespace stemhand

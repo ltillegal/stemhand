@@ -68,5 +68,7 @@ Ludens это известный маскот Kojima Productions и назван
 IndieStems — если важнее всего, чтобы название само себя объясняло;
 Muselud — если хочется загадки; Ludens — если не страшно делить имя с Кодзимой.
 
-Переименование — механическая операция: binary, `.desktop`/`.app`, каталог
-хранилища и `photone-sign`. Сделаю одним скриптом после выбора.
+Взято **Stemhand**. Переименование выполнено: бинари `stemhand` и
+`stemhand-sign`, QML-модуль `Stemhand`, каталог хранилища
+`~/.local/share/stemhand/models` (macOS: `~/Library/Application Support/stemhand`),
+бандл `dev.stemhand.app`. Старые упоминания `photone` в коде не остались.

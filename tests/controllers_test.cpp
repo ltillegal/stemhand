@@ -8,7 +8,7 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-using namespace photone;
+using namespace stemhand;
 
 // Exercises the same asynchronous paths the GUI uses: worker thread, network
 // (file:// here), verification, and the signal the interface reacts to.
@@ -23,10 +23,10 @@ private slots:
 
 void ControllersTest::denoisesVoice()
 {
-    const QString storeRoot = qEnvironmentVariable("PHOTONE_TEST_MODELS");
-    const QString input = qEnvironmentVariable("PHOTONE_TEST_INPUT");
+    const QString storeRoot = qEnvironmentVariable("STEMHAND_TEST_MODELS");
+    const QString input = qEnvironmentVariable("STEMHAND_TEST_INPUT");
     if (storeRoot.isEmpty() || input.isEmpty())
-        QSKIP("set PHOTONE_TEST_MODELS and PHOTONE_TEST_INPUT to run this test");
+        QSKIP("set STEMHAND_TEST_MODELS and STEMHAND_TEST_INPUT to run this test");
 
     ModelStore store;
     store.setRoot(storeRoot);
@@ -52,9 +52,9 @@ void ControllersTest::denoisesVoice()
 
 void ControllersTest::installsFromRegistry()
 {
-    const QString registry = qEnvironmentVariable("PHOTONE_TEST_REGISTRY");
+    const QString registry = qEnvironmentVariable("STEMHAND_TEST_REGISTRY");
     if (registry.isEmpty())
-        QSKIP("set PHOTONE_TEST_REGISTRY to run this test");
+        QSKIP("set STEMHAND_TEST_REGISTRY to run this test");
 
     QTemporaryDir temporary;
     QVERIFY(temporary.isValid());

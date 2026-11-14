@@ -3,8 +3,8 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-bin="$root/build/photone"
-sign="$root/build/photone-sign"
+bin="$root/build/stemhand"
+sign="$root/build/stemhand-sign"
 tmp="$root/build/test-models"
 
 fail=0

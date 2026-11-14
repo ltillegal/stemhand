@@ -21,7 +21,7 @@
 
 #include <algorithm>
 
-namespace photone {
+namespace stemhand {
 namespace {
 
 constexpr int kFetchTimeoutMs = 60000;
@@ -70,7 +70,7 @@ bool fetchUrl(const QUrl &url, QByteArray *payload, QString *error)
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::NoLessSafeRedirectPolicy);
-    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("photone/0.1"));
+    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("stemhand/0.1"));
 
     QNetworkReply *reply = manager.get(request);
     QEventLoop loop;
@@ -302,4 +302,4 @@ void writeRegistryUrl(const QString &storeRoot, const QUrl &url)
         file.write(url.toString().toUtf8() + "\n");
 }
 
-} // namespace photone
+} // namespace stemhand

@@ -21,7 +21,7 @@
 
 #include <sodium.h>
 
-using namespace photone;
+using namespace stemhand;
 
 namespace {
 
@@ -130,18 +130,18 @@ int main(int argc, char *argv[])
         } else if (arg == QLatin1String("--screenshot") && i + 1 < raw.size()) {
             screenshot = raw.at(++i);
         } else if (arg == QLatin1String("--version")) {
-            std::printf("photone %s\n", PHOTONE_VERSION);
+            std::printf("stemhand %s\n", STEMHAND_VERSION);
             return 0;
         } else if (arg == QLatin1String("--help") || arg == QLatin1String("-h")) {
             std::printf(
-                "photone %s\n\n"
-                "  photone [file]            open the app\n"
-                "  photone --scan [--json]   list the model store, exit 1 if a model is broken\n"
-                "  photone --denoise <in> <out> [--model <id|dir>] [--threads N]\n"
-                "  photone --update <index-url> [--check]\n"
-                "  photone --prefer <id>@<version> | --release <id> | --versions\n"
-                "  photone --root <dir>      use another model store\n",
-                PHOTONE_VERSION);
+                "stemhand %s\n\n"
+                "  stemhand [file]            open the app\n"
+                "  stemhand --scan [--json]   list the model store, exit 1 if a model is broken\n"
+                "  stemhand --denoise <in> <out> [--model <id|dir>] [--threads N]\n"
+                "  stemhand --update <index-url> [--check]\n"
+                "  stemhand --prefer <id>@<version> | --release <id> | --versions\n"
+                "  stemhand --root <dir>      use another model store\n",
+                STEMHAND_VERSION);
             return 0;
         } else if (!arg.startsWith(QLatin1Char('-'))) {
             openPath = arg;
@@ -155,9 +155,9 @@ int main(int argc, char *argv[])
 
     if (headless) {
         QCoreApplication app(argc, argv);
-        QCoreApplication::setApplicationName(QStringLiteral("photone"));
+        QCoreApplication::setApplicationName(QStringLiteral("stemhand"));
         if (sodium_init() < 0) {
-            std::fprintf(stderr, "photone: libsodium failed to initialise\n");
+            std::fprintf(stderr, "stemhand: libsodium failed to initialise\n");
             return 1;
         }
         if (scan)
@@ -188,12 +188,12 @@ int main(int argc, char *argv[])
     }
 
     QGuiApplication app(argc, argv);
-    QGuiApplication::setApplicationName(QStringLiteral("photone"));
-    QGuiApplication::setApplicationVersion(QStringLiteral(PHOTONE_VERSION));
-    QGuiApplication::setDesktopFileName(QStringLiteral("photone"));
+    QGuiApplication::setApplicationName(QStringLiteral("stemhand"));
+    QGuiApplication::setApplicationVersion(QStringLiteral(STEMHAND_VERSION));
+    QGuiApplication::setDesktopFileName(QStringLiteral("stemhand"));
 
     if (sodium_init() < 0) {
-        std::fprintf(stderr, "photone: libsodium failed to initialise\n");
+        std::fprintf(stderr, "stemhand: libsodium failed to initialise\n");
         return 1;
     }
 
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
     QObject::connect(&denoise, &DenoiseController::finished, &audio,
                      [&audio](const QString &path) { audio.load(QUrl::fromLocalFile(path)); });
 
-    qmlRegisterType<WaveformItem>("Photone", 1, 0, "WaveformItem");
+    qmlRegisterType<WaveformItem>("Stemhand", 1, 0, "WaveformItem");
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("store"), &store);
@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("denoise"), &denoise);
     engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
     engine.rootContext()->setContextProperty(QStringLiteral("appVersion"),
-                                             QStringLiteral(PHOTONE_VERSION));
+                                             QStringLiteral(STEMHAND_VERSION));
     engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
 
     if (engine.rootObjects().isEmpty())

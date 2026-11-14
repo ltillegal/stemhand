@@ -1,5 +1,5 @@
 import QtQuick
-import Photone 1.0
+import Stemhand 1.0
 
 Item {
     id: root

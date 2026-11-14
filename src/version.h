@@ -3,7 +3,7 @@
 #include <QString>
 #include <QStringList>
 
-namespace photone {
+namespace stemhand {
 
 // Dotted numeric versions, compared field by field so that "1.10.0" sorts after
 // "1.9.0". Not full semver: pre-release tags are not used by the model store.
@@ -26,4 +26,4 @@ inline bool versionEqual(const QString &left, const QString &right)
     return !versionLess(left, right) && !versionLess(right, left);
 }
 
-} // namespace photone
+} // namespace stemhand
