@@ -25,6 +25,16 @@
 - CLI: `photone --denoise <in> <out>`; в приложении — кнопка **Denoise voice**
   и клавиша `D`.
 
+**M2 — обновление моделей по сети:**
+
+- `photone --update <index-url>` — проверяет индекс, ставит недостающее.
+- В приложении — кнопка **Update models**; адрес реестра запоминается в
+  `registry.url` внутри хранилища, а не в глобальном конфиге.
+- Установка атомарная: скачивание в `.incoming/`, проверка подписи и хешей,
+  потом `rename`. Провал проверки не оставляет модели.
+- Версии сосуществуют: после обновления 1.0.0 остаётся на диске, откат — это
+  выбор другой версии, а не переустановка.
+
 Замеры на этой машине (i5-3210M, 2 ядра / 4 потока, без GPU):
 
 | Потоки | 9.77 с речи | Реальное время |
@@ -65,6 +75,36 @@ open build/photone.app
 ONNX Runtime необязателен при конфигурации: без него собирается всё, кроме
 движка, а денойзинг честно сообщает, что движка нет.
 
+## Обновление моделей
+
+Реестр — это каталог или HTTP-префикс с `index.json` и по одному каталогу на
+версию модели:
+
+```json
+{
+  "schema": 1,
+  "models": [
+    { "id": "denoise/gtcrn", "version": "1.1.0",
+      "manifest": "denoise/gtcrn/1.1.0/manifest.json" }
+  ]
+}
+```
+
+```bash
+./scripts/make-registry.sh 1.1.0            # локальный реестр для тестов
+./build/photone --update "file://$PWD/build/registry/index.json" --root build/upg
+# update   denoise/gtcrn 1.1.0 (from 1.0.0)
+# done     build/upg/denoise/gtcrn/1.1.0
+```
+
+Индекс не является источником доверия: он умеет только указывать, а манифест
+каждой модели подписан и пинит хеши весов. Поэтому подмена индекса даёт отказ
+проверки, а не подмену модели.
+
+```bash
+./build/photone --update https://example.org/photone/index.json --check  # только план
+```
+
 ## Модели
 
 ```bash
@@ -102,14 +142,14 @@ curl -L -o gtcrn_simple.onnx \
 }
 ```
 
-Подпись: `photone-sign sign <model-dir> <private-key>` создаёт `manifest.sig`.
+Подпись: `photone-sign sign <model-dir> <private-key>` создаёт `manifest.json.sig`.
 Публичный ключ зашит в бинарь (`keys/dev.pub` → `cmake/pinned_key.h.in`),
 приватный лежит в `.dev-keys/` и в git не попадает.
 
 ## Тесты
 
 ```bash
-./scripts/test.sh        # 10 проверок: доверие, подмена, детерминизм денойзинга
+./scripts/test.sh        # 12 проверок: доверие, подмена, денойзинг, обновления
 cd build && ctest        # асинхронный путь через движок (Qt Test)
 ```
 

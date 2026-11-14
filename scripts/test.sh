@@ -36,7 +36,7 @@ check "tampered weights exit 1" 1 \
 check "tampered weights reported corrupt" 1 \
     "$("$bin" --scan --json --root "$tmp" | grep -c '"status": "corrupt"')"
 
-rm "$tmp/drums5/drumsep/1.0.0/manifest.sig"
+rm "$tmp/drums5/drumsep/1.0.0/manifest.json.sig"
 
 check "unsigned model reported unverified" 1 \
     "$("$bin" --scan --json --root "$tmp" | grep -c '"status": "unverified"')"
@@ -69,6 +69,35 @@ if [ -f "$input" ] && [ -f "$voice" ]; then
 
     check "denoise writes a real wav" ">200000 bytes" \
         "$([ "$(stat -c%s "$outdir/a.wav")" -gt 200000 ] && echo '>200000 bytes' || echo too-small)"
+fi
+
+# Registry checks against the local file:// fixture from make-registry.sh.
+registry="$root/build/registry/index.json"
+if [ -f "$registry" ]; then
+    fresh="$root/build/test-update"
+    rm -rf "$fresh"
+    mkdir -p "$fresh"
+
+    "$bin" --update "file://$registry" --root "$fresh" > /dev/null 2>&1
+    check "update installs a verified model" 1 \
+        "$("$bin" --scan --json --root "$fresh" | grep -c '"status": "ok"')"
+
+    check "update is idempotent" "up to date" \
+        "$("$bin" --update "file://$registry" --root "$fresh" 2>&1 | grep -o 'up to date' | head -1)"
+
+    bad="$root/build/registry-bad"
+    rm -rf "$bad"
+    cp -r "$root/build/registry" "$bad"
+    printf 'X' | dd of="$bad/denoise/gtcrn/1.1.0/gtcrn_simple.onnx" bs=1 seek=5000 conv=notrunc status=none
+
+    poisoned="$root/build/test-update-bad"
+    rm -rf "$poisoned"
+    mkdir -p "$poisoned"
+    status=0
+    "$bin" --update "file://$bad/index.json" --root "$poisoned" > /dev/null 2>&1 || status=$?
+    check "tampered weights are refused" 1 "$status"
+    check "a failed update leaves no model behind" 0 \
+        "$("$bin" --scan --json --root "$poisoned" | grep -c '"id"')"
 fi
 
 rm -rf "$tmp"

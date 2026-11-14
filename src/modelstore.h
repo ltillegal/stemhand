@@ -30,7 +30,7 @@ struct ModelEntry {
 
 // On-disk model store.
 //
-// Layout: <root>/<id>/<version>/{manifest.json, manifest.sig, ...weights}
+// Layout: <root>/<id>/<version>/{manifest.json, manifest.json.sig, ...weights}
 //
 // Versions coexist; nothing is overwritten in place, so a rollback is just a
 // matter of pointing at another version directory. The rescan is cheap enough

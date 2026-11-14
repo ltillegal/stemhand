@@ -229,25 +229,38 @@ ApplicationWindow {
                         ToolTip.text: store.root
                     }
 
-                    RowLayout {
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 6
+                        spacing: 2
 
                         Button {
-                            text: qsTr("Rescan")
+                            Layout.fillWidth: true
+                            text: updates.busy ? qsTr("Checking…") : qsTr("Update models")
                             flat: true
-                            onClicked: store.rescan()
+                            enabled: !updates.busy
+                            onClicked: updates.checkAndInstall()
                         }
-                        Button {
-                            text: qsTr("Import model")
-                            flat: true
-                            onClicked: importDialog.open()
-                        }
-                        Item { Layout.fillWidth: true }
-                        Button {
-                            text: qsTr("Folder")
-                            flat: true
-                            onClicked: store.openRootInFileManager()
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Button {
+                                text: qsTr("Rescan")
+                                flat: true
+                                onClicked: store.rescan()
+                            }
+                            Button {
+                                text: qsTr("Import")
+                                flat: true
+                                onClicked: importDialog.open()
+                            }
+                            Item { Layout.fillWidth: true }
+                            Button {
+                                text: qsTr("Folder")
+                                flat: true
+                                onClicked: store.openRootInFileManager()
+                            }
                         }
                     }
                 }
@@ -344,16 +357,17 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: visible ? 26 : 0
-                    visible: denoise.message.length > 0 && denoise.error.length === 0
-                    color: denoise.busy ? "#1b1a10" : "#0f1a17"
+                    visible: (denoise.message.length > 0 || updates.message.length > 0)
+                             && denoise.error.length === 0 && updates.error.length === 0
+                    color: (denoise.busy || updates.busy) ? "#1b1a10" : "#0f1a17"
 
                     Text {
                         anchors.fill: parent
                         anchors.leftMargin: 26
                         anchors.rightMargin: 26
                         verticalAlignment: Text.AlignVCenter
-                        text: denoise.message
-                        color: denoise.busy ? pal.warn : pal.ok
+                        text: denoise.message.length > 0 ? denoise.message : updates.message
+                        color: (denoise.busy || updates.busy) ? pal.warn : pal.ok
                         font.pixelSize: 11
                         elide: Text.ElideRight
                     }
@@ -362,8 +376,8 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: visible ? 30 : 0
-                    visible: denoise.error.length > 0 || audio.error.length > 0
-                              || store.lastError.length > 0
+                    visible: denoise.error.length > 0 || updates.error.length > 0
+                              || audio.error.length > 0 || store.lastError.length > 0
                     color: "#2a1416"
 
                     Text {
@@ -372,7 +386,8 @@ ApplicationWindow {
                         anchors.rightMargin: 26
                         verticalAlignment: Text.AlignVCenter
                         text: denoise.error.length > 0 ? denoise.error
-                              : (audio.error.length > 0 ? audio.error : store.lastError)
+                              : (updates.error.length > 0 ? updates.error
+                              : (audio.error.length > 0 ? audio.error : store.lastError))
                         color: pal.bad
                         font.pixelSize: 11
                         elide: Text.ElideRight

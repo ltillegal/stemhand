@@ -212,7 +212,7 @@ void ModelStore::loadEntry(const QString &versionDir)
     }
     entry.manifest = *manifest;
 
-    QFile signatureFile(versionDir + QStringLiteral("/manifest.sig"));
+    QFile signatureFile(versionDir + QStringLiteral("/manifest.json.sig"));
     if (signatureFile.open(QIODevice::ReadOnly)) {
         entry.signaturePresent = true;
         const QByteArray signature = QByteArray::fromBase64(signatureFile.readAll().trimmed());
@@ -259,7 +259,7 @@ void ModelStore::loadEntry(const QString &versionDir)
 
     if (!entry.signaturePresent) {
         entry.status = ModelStatus::Unverified;
-        entry.detail = QStringLiteral("no manifest.sig — integrity checked, origin unknown");
+        entry.detail = QStringLiteral("no manifest.json.sig — integrity checked, origin unknown");
     } else {
         entry.status = ModelStatus::Ok;
         entry.detail = QStringLiteral("signature verified");

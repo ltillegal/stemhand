@@ -59,6 +59,8 @@ qt_add_executable(photone
     src/audiofile.cpp
     src/waveformitem.cpp
     src/denoisecontroller.cpp
+    src/updatecontroller.cpp
+    src/registry.cpp
     ${PHOTONE_ENGINE_SOURCES}
 )
 
@@ -112,11 +114,13 @@ enable_testing()
 find_package(Qt6 6.5 QUIET COMPONENTS Test)
 if(Qt6Test_FOUND)
     qt_add_executable(photone-tests
-        tests/denoise_test.cpp
+        tests/controllers_test.cpp
         src/manifest.cpp
         src/keys.cpp
         src/modelstore.cpp
         src/denoisecontroller.cpp
+        src/updatecontroller.cpp
+        src/registry.cpp
         src/engine/audioio.cpp
         src/engine/fft.cpp
         src/engine/gtcrn.cpp
@@ -124,15 +128,15 @@ if(Qt6Test_FOUND)
     target_include_directories(photone-tests PRIVATE src "${CMAKE_CURRENT_BINARY_DIR}")
     target_compile_definitions(photone-tests PRIVATE PHOTONE_MODEL_ENGINE_ABI=1)
     target_link_libraries(photone-tests PRIVATE
-        Qt6::Core Qt6::Gui Qt6::Test Qt6::Concurrent PkgConfig::SODIUM
+        Qt6::Core Qt6::Gui Qt6::Network Qt6::Test Qt6::Concurrent PkgConfig::SODIUM
     )
     if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
         target_compile_definitions(photone-tests PRIVATE PHOTONE_HAVE_ONNXRUNTIME=1)
         target_include_directories(photone-tests PRIVATE "${ONNXRUNTIME_INCLUDE_DIR}")
         target_link_libraries(photone-tests PRIVATE "${ONNXRUNTIME_LIBRARY}")
     endif()
-    add_test(NAME denoise COMMAND photone-tests)
-    set_tests_properties(denoise PROPERTIES
-        ENVIRONMENT "PHOTONE_TEST_MODELS=${CMAKE_CURRENT_SOURCE_DIR}/build/models;PHOTONE_TEST_INPUT=${CMAKE_CURRENT_SOURCE_DIR}/models-dev/gtcrn/mix.wav"
+    add_test(NAME controllers COMMAND photone-tests)
+    set_tests_properties(controllers PROPERTIES
+        ENVIRONMENT "PHOTONE_TEST_MODELS=${CMAKE_CURRENT_SOURCE_DIR}/build/models;PHOTONE_TEST_INPUT=${CMAKE_CURRENT_SOURCE_DIR}/models-dev/gtcrn/mix.wav;PHOTONE_TEST_REGISTRY=${CMAKE_CURRENT_SOURCE_DIR}/build/registry/index.json"
     )
 endif()

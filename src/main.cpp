@@ -1,6 +1,7 @@
 #include "audiofile.h"
 #include "cli.h"
 #include "denoisecontroller.h"
+#include "updatecontroller.h"
 #include "modelstore.h"
 #include "waveformitem.h"
 
@@ -94,6 +95,8 @@ int main(int argc, char *argv[])
     QString denoiseIn;
     QString denoiseOut;
     QString modelRef;
+    QString updateIndex;
+    bool checkOnly = false;
     int threads = 0;
 
     for (int i = 1; i < raw.size(); ++i) {
@@ -105,6 +108,10 @@ int main(int argc, char *argv[])
         } else if (arg == QLatin1String("--denoise") && i + 2 < raw.size()) {
             denoiseIn = raw.at(++i);
             denoiseOut = raw.at(++i);
+        } else if (arg == QLatin1String("--update") && i + 1 < raw.size()) {
+            updateIndex = raw.at(++i);
+        } else if (arg == QLatin1String("--check")) {
+            checkOnly = true;
         } else if (arg == QLatin1String("--model") && i + 1 < raw.size()) {
             modelRef = raw.at(++i);
         } else if (arg == QLatin1String("--threads") && i + 1 < raw.size()) {
@@ -122,6 +129,7 @@ int main(int argc, char *argv[])
                 "  photone [file]            open the app\n"
                 "  photone --scan [--json]   list the model store, exit 1 if a model is broken\n"
                 "  photone --denoise <in> <out> [--model <id|dir>] [--threads N]\n"
+                "  photone --update <index-url> [--check]\n"
                 "  photone --root <dir>      use another model store\n",
                 PHOTONE_VERSION);
             return 0;
@@ -132,7 +140,7 @@ int main(int argc, char *argv[])
 
     // Scan mode has to work from a terminal and from agents with no display,
     // so it never constructs a GUI application (and never touches the session).
-    if (scan || !denoiseIn.isEmpty()) {
+    if (scan || !denoiseIn.isEmpty() || !updateIndex.isEmpty()) {
         QCoreApplication app(argc, argv);
         QCoreApplication::setApplicationName(QStringLiteral("photone"));
         if (sodium_init() < 0) {
@@ -141,6 +149,14 @@ int main(int argc, char *argv[])
         }
         if (scan)
             return runScan(root, asJson);
+
+        if (!updateIndex.isEmpty()) {
+            UpdateRequest request;
+            request.indexUrl = QUrl(updateIndex);
+            request.storeRoot = root;
+            request.checkOnly = checkOnly;
+            return runUpdate(request);
+        }
 
         DenoiseRequest request;
         request.input = denoiseIn;
@@ -168,6 +184,7 @@ int main(int argc, char *argv[])
 
     AudioFile audio;
     DenoiseController denoise(&store);
+    UpdateController updates(&store);
     QObject::connect(&denoise, &DenoiseController::finished, &audio,
                      [&audio](const QString &path) { audio.load(QUrl::fromLocalFile(path)); });
 
@@ -177,6 +194,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("store"), &store);
     engine.rootContext()->setContextProperty(QStringLiteral("audio"), &audio);
     engine.rootContext()->setContextProperty(QStringLiteral("denoise"), &denoise);
+    engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
     engine.rootContext()->setContextProperty(QStringLiteral("appVersion"),
                                              QStringLiteral(PHOTONE_VERSION));
     engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));

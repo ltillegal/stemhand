@@ -4,6 +4,7 @@
 #include "engine/gtcrn.h"
 #include "manifest.h"
 #include "modelstore.h"
+#include "registry.h"
 
 #include <QDir>
 #include <QElapsedTimer>
@@ -157,6 +158,67 @@ int runDenoise(const DenoiseRequest &request)
     if (gain < 1.0f)
         std::printf("gain     %.4f (peak limiting)\n", gain);
     return 0;
+}
+
+int runUpdate(const UpdateRequest &request)
+{
+    if (!request.indexUrl.isValid()) {
+        std::fprintf(stderr, "photone --update needs a valid index URL\n");
+        return 64;
+    }
+
+    ModelStore store;
+    if (!request.storeRoot.isEmpty())
+        store.setRoot(request.storeRoot);
+    store.rescan();
+
+    RegistryIndex index;
+    QString error;
+    if (!parseIndex(request.indexUrl, &index, &error)) {
+        std::fprintf(stderr, "%s\n", qPrintable(error));
+        return 1;
+    }
+
+    QList<UpdatePlan> plan;
+    if (!planUpdates(index, &store, &plan, &error)) {
+        std::fprintf(stderr, "%s\n", qPrintable(error));
+        return 1;
+    }
+
+    // Remember the registry so the app's "Update models" button works later.
+    writeRegistryUrl(store.root(), request.indexUrl);
+
+    if (plan.isEmpty()) {
+        std::printf("up to date (%lld models in the index)\n",
+                    static_cast<long long>(index.models.size()));
+        return 0;
+    }
+
+    for (const UpdatePlan &item : plan) {
+        std::printf("%-8s %s %s%s\n", item.isUpgrade ? "update" : "install",
+                    qPrintable(item.id), qPrintable(item.version),
+                    item.isUpgrade
+                        ? qPrintable(QStringLiteral(" (from %1)").arg(item.installedVersion))
+                        : "");
+    }
+
+    if (request.checkOnly)
+        return 0;
+
+    bool ok = true;
+    for (const UpdatePlan &item : plan) {
+        QString installed;
+        if (!installModel(item.manifestUrl, store.root(), &installed, &error)) {
+            std::fprintf(stderr, "failed to install %s %s: %s\n", qPrintable(item.id),
+                         qPrintable(item.version), qPrintable(error));
+            ok = false;
+            continue;
+        }
+        std::printf("done     %s\n", qPrintable(installed));
+    }
+
+    store.rescan();
+    return ok ? 0 : 1;
 }
 
 } // namespace photone

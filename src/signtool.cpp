@@ -121,9 +121,9 @@ int main(int argc, char *argv[])
                              static_cast<unsigned long long>(manifest.size()),
                              reinterpret_cast<const unsigned char *>(secretKey.constData()));
 
-        QFile out(modelDir + QStringLiteral("/manifest.sig"));
+        QFile out(modelDir + QStringLiteral("/manifest.json.sig"));
         if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            std::fprintf(stderr, "cannot write manifest.sig\n");
+            std::fprintf(stderr, "cannot write manifest.json.sig\n");
             return 1;
         }
         out.write(QByteArray(reinterpret_cast<const char *>(signature), crypto_sign_BYTES).toBase64()
@@ -154,9 +154,9 @@ int main(int argc, char *argv[])
             return 1;
         }
         const QByteArray signature =
-            QByteArray::fromBase64(readAll(modelDir + QStringLiteral("/manifest.sig"), &ok).trimmed());
+            QByteArray::fromBase64(readAll(modelDir + QStringLiteral("/manifest.json.sig"), &ok).trimmed());
         if (!ok) {
-            std::fprintf(stderr, "no manifest.sig in %s\n", qPrintable(modelDir));
+            std::fprintf(stderr, "no manifest.json.sig in %s\n", qPrintable(modelDir));
             return 1;
         }
 
