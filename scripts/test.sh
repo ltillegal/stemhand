@@ -135,9 +135,12 @@ if [ -f "$registry" ]; then
         "$("$bin" --update "file://$registry" --root "$fresh" 2>&1 | grep -o 'up to date' | head -1)"
 
     # Upgrade path: keep 1.0.0, install 1.1.0 next to it, newest first.
+    # Copy only the model under test: copying the whole store duplicates the
+    # 290 MB htdemucs file on every run for no reason.
     upgrade="$root/build/test-upgrade"
     rm -rf "$upgrade"
-    cp -r "$root/build/models" "$upgrade"
+    mkdir -p "$upgrade/denoise"
+    cp -r "$root/build/models/denoise/gtcrn" "$upgrade/denoise/"
     "$bin" --update "file://$registry" --root "$upgrade" > /dev/null 2>&1
     check "upgrade keeps the old version" 2 \
         "$("$bin" --scan --json --root "$upgrade" | grep -c '"id": "denoise/gtcrn"')"
@@ -168,6 +171,8 @@ if [ -f "$registry" ]; then
     check "tampered weights are refused" 1 "$status"
     check "a failed update leaves no model behind" 0 \
         "$("$bin" --scan --json --root "$poisoned" | grep -c '"id"')"
+
+    rm -rf "$upgrade" "$fresh" "$poisoned" "$bad" "$root/build/registry-bad"
 fi
 
 rm -rf "$tmp"
