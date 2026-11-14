@@ -43,6 +43,8 @@ set(STEMHAND_ENGINE_SOURCES
     src/engine/audioio.cpp
     src/engine/fft.cpp
     src/engine/gtcrn.cpp
+    src/engine/htdemucs.cpp
+    src/engine/wavwriter.cpp
 )
 
 if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)

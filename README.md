@@ -25,6 +25,20 @@
 - CLI: `stemhand --denoise <in> <out>`; в приложении — кнопка **Denoise voice**
   и клавиша `D`.
 
+**M3 — четыре стема (без интерфейса):**
+
+- `stemhand --separate <in> <outdir>` — drums / bass / other / vocals.
+- Модель htdemucs (289 МБ, ONNX), драйвер `htdemucs`.
+- Граф принимает ровно 343 980 сэмплов (7.8 с при 44.1 кГц) — длина сегмента
+  запечена в экспорт, поэтому файл режется на сегменты с перекрытием 25 %,
+  а стемы пишутся на диск потоком, а не копятся в памяти.
+- Сверка с независимым Python-референсом: расхождение ровно 1 отсчёт PCM16
+  (3·10⁻⁵), SI-SNR 48–81 дБ по стемам.
+
+Скорость на этой машине (2 потока, свободная машина): 8 с аудио за 17.3 с —
+0.46× реального времени. То есть 4-минутный трек — около 9 минут. На M1 будет
+быстрее, но замеров оттуда пока нет.
+
 **M2 — обновление моделей по сети:**
 
 - `stemhand --update <index-url>` — проверяет индекс, ставит недостающее.
@@ -124,6 +138,7 @@ curl -L -o gtcrn_simple.onnx \
 
 ```bash
 ./build/stemhand --denoise interview.wav clean.wav --root ~/.local/share/stemhand/models
+./build/stemhand --separate song.mp3 stems/ --root ~/.local/share/stemhand/models
 ./build/stemhand --scan --json
 ```
 

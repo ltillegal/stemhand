@@ -2,6 +2,7 @@
 
 #include "engine/audioio.h"
 #include "engine/gtcrn.h"
+#include "engine/htdemucs.h"
 #include "manifest.h"
 #include "modelstore.h"
 #include "registry.h"
@@ -25,24 +26,24 @@ struct ResolvedModel {
     QString weightsPath;
 };
 
-bool resolveModel(const DenoiseRequest &request, ResolvedModel *resolved, QString *error)
+bool resolveModel(const QString &modelRef, const QString &storeRoot, const QString &driver,
+                  ResolvedModel *resolved, QString *error)
 {
-    QString directory = request.modelRef;
+    QString directory = modelRef;
 
     if (directory.isEmpty() || !QFileInfo::exists(directory + QStringLiteral("/manifest.json"))) {
         ModelStore store;
-        if (!request.storeRoot.isEmpty())
-            store.setRoot(request.storeRoot);
+        if (!storeRoot.isEmpty())
+            store.setRoot(storeRoot);
         store.rescan();
 
-        QString wanted = request.modelRef;
         bool found = false;
         for (const QVariant &item : store.models()) {
             const QVariantMap map = item.toMap();
-            const bool driverMatches = map.value(QStringLiteral("driver")).toString()
-                == QLatin1String("gtcrn");
-            const bool idMatches = wanted.isEmpty()
-                || map.value(QStringLiteral("id")).toString() == wanted;
+            const bool driverMatches =
+                map.value(QStringLiteral("driver")).toString() == driver;
+            const bool idMatches =
+                modelRef.isEmpty() || map.value(QStringLiteral("id")).toString() == modelRef;
             if (driverMatches && idMatches) {
                 directory = map.value(QStringLiteral("dir")).toString();
                 found = true;
@@ -51,10 +52,10 @@ bool resolveModel(const DenoiseRequest &request, ResolvedModel *resolved, QStrin
         }
         if (!found) {
             if (error) {
-                *error = wanted.isEmpty()
-                    ? QStringLiteral("no model with driver \"gtcrn\" is installed")
-                    : QStringLiteral("no installed model matches \"%1\" with driver \"gtcrn\"")
-                          .arg(wanted);
+                *error = modelRef.isEmpty()
+                    ? QStringLiteral("no model with driver \"%1\" is installed").arg(driver)
+                    : QStringLiteral("no installed model matches \"%1\" with driver \"%2\"")
+                          .arg(modelRef, driver);
             }
             return false;
         }
@@ -74,10 +75,10 @@ bool resolveModel(const DenoiseRequest &request, ResolvedModel *resolved, QStrin
             *error = parseError;
         return false;
     }
-    if (manifest->driver != QLatin1String("gtcrn")) {
+    if (manifest->driver != driver) {
         if (error) {
-            *error = QStringLiteral("%1 %2 uses driver \"%3\", this command only runs \"gtcrn\"")
-                         .arg(manifest->id, manifest->version, manifest->driver);
+            *error = QStringLiteral("%1 %2 uses driver \"%3\", expected \"%4\"")
+                         .arg(manifest->id, manifest->version, manifest->driver, driver);
         }
         return false;
     }
@@ -108,7 +109,8 @@ int runDenoise(const DenoiseRequest &request)
 
     ResolvedModel model;
     QString error;
-    if (!resolveModel(request, &model, &error)) {
+    if (!resolveModel(request.modelRef, request.storeRoot, QStringLiteral("gtcrn"), &model,
+                      &error)) {
         std::fprintf(stderr, "%s\n", qPrintable(error));
         return 1;
     }
@@ -157,6 +159,73 @@ int runDenoise(const DenoiseRequest &request)
     std::printf("elapsed  %.3fs  %.1fx realtime\n", elapsed, duration / qMax(elapsed, 1e-6));
     if (gain < 1.0f)
         std::printf("gain     %.4f (peak limiting)\n", gain);
+    return 0;
+}
+
+int runSeparate(const SeparateRequest &request)
+{
+    if (request.input.isEmpty() || request.outputDir.isEmpty()) {
+        std::fprintf(stderr, "stemhand --separate needs an input file and an output directory\n");
+        return 64;
+    }
+    if (!QFileInfo::exists(request.input)) {
+        std::fprintf(stderr, "no such input: %s\n", qPrintable(request.input));
+        return 66;
+    }
+
+    ResolvedModel model;
+    QString error;
+    if (!resolveModel(request.modelRef, request.storeRoot, QStringLiteral("htdemucs"), &model,
+                      &error)) {
+        std::fprintf(stderr, "%s\n", qPrintable(error));
+        return 1;
+    }
+
+    const int threads = request.threads > 0 ? request.threads : QThread::idealThreadCount();
+
+    HtdemucsSeparator separator;
+    if (!separator.load(model.weightsPath, threads, &error)) {
+        std::fprintf(stderr, "%s\n", qPrintable(error));
+        return 1;
+    }
+
+    QVector<float> interleaved;
+    if (!decodeToChannels(request.input, HtdemucsSeparator::kSampleRate,
+                          HtdemucsSeparator::kChannels, &interleaved, &error)) {
+        std::fprintf(stderr, "%s\n", qPrintable(error));
+        return 1;
+    }
+
+    const double duration =
+        interleaved.size() / (HtdemucsSeparator::kChannels
+                              * static_cast<double>(HtdemucsSeparator::kSampleRate));
+
+    const QString base = QFileInfo(request.input).completeBaseName();
+    QElapsedTimer timer;
+    timer.start();
+
+    const bool ok = separator.separate(
+        interleaved, request.outputDir, base, &error, [](int done, int total) {
+            if (total > 1)
+                std::fprintf(stderr, "  chunk %d/%d\n", done, total);
+        });
+    const double elapsed = timer.elapsed() / 1000.0;
+
+    if (!ok) {
+        std::fprintf(stderr, "%s\n", qPrintable(error));
+        return 1;
+    }
+
+    std::printf("model    %s %s (driver %s)\n", qPrintable(model.manifest.id),
+                qPrintable(model.manifest.version), qPrintable(model.manifest.driver));
+    std::printf("input    %s  %.2fs  %d Hz stereo\n", qPrintable(request.input), duration,
+                HtdemucsSeparator::kSampleRate);
+    std::printf("threads  %d\n", threads);
+    std::printf("elapsed  %.1fs  %.2fx realtime\n", elapsed, duration / qMax(elapsed, 1e-6));
+    for (const QString &stem : HtdemucsSeparator::stemNames()) {
+        std::printf("stem     %s/%s_%s.wav\n", qPrintable(request.outputDir), qPrintable(base),
+                    qPrintable(stem));
+    }
     return 0;
 }
 

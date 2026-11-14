@@ -11,6 +11,12 @@ namespace stemhand {
 
 bool decodeToMono(const QString &path, int sampleRate, QVector<float> *samples, QString *error)
 {
+    return decodeToChannels(path, sampleRate, 1, samples, error);
+}
+
+bool decodeToChannels(const QString &path, int sampleRate, int channels,
+                      QVector<float> *interleaved, QString *error)
+{
     const QString ffmpeg = QStandardPaths::findExecutable(QStringLiteral("ffmpeg"));
     if (ffmpeg.isEmpty()) {
         if (error)
@@ -22,7 +28,7 @@ bool decodeToMono(const QString &path, int sampleRate, QVector<float> *samples, 
     process.start(ffmpeg,
                   {QStringLiteral("-v"), QStringLiteral("error"), QStringLiteral("-i"), path,
                    QStringLiteral("-map"), QStringLiteral("a:0"), QStringLiteral("-ac"),
-                   QStringLiteral("1"), QStringLiteral("-ar"), QString::number(sampleRate),
+                   QString::number(channels), QStringLiteral("-ar"), QString::number(sampleRate),
                    QStringLiteral("-f"), QStringLiteral("f32le"), QStringLiteral("-")});
 
     if (!process.waitForStarted(5000)) {
@@ -47,8 +53,8 @@ bool decodeToMono(const QString &path, int sampleRate, QVector<float> *samples, 
     }
 
     const qsizetype count = buffer.size() / static_cast<qsizetype>(sizeof(float));
-    samples->resize(count);
-    std::memcpy(samples->data(), buffer.constData(), static_cast<size_t>(count) * sizeof(float));
+    interleaved->resize(count);
+    std::memcpy(interleaved->data(), buffer.constData(), static_cast<size_t>(count) * sizeof(float));
 
     if (count == 0) {
         if (error)

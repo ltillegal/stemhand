@@ -94,6 +94,8 @@ int main(int argc, char *argv[])
     QString openPath;
     QString denoiseIn;
     QString denoiseOut;
+    QString separateIn;
+    QString separateOut;
     QString modelRef;
     QString updateIndex;
     QString preferRef;
@@ -121,6 +123,9 @@ int main(int argc, char *argv[])
             listVersions = true;
         } else if (arg == QLatin1String("--check")) {
             checkOnly = true;
+        } else if (arg == QLatin1String("--separate") && i + 2 < raw.size()) {
+            separateIn = raw.at(++i);
+            separateOut = raw.at(++i);
         } else if (arg == QLatin1String("--model") && i + 1 < raw.size()) {
             modelRef = raw.at(++i);
         } else if (arg == QLatin1String("--threads") && i + 1 < raw.size()) {
@@ -150,7 +155,8 @@ int main(int argc, char *argv[])
 
     // Scan mode has to work from a terminal and from agents with no display,
     // so it never constructs a GUI application (and never touches the session).
-    const bool headless = scan || !denoiseIn.isEmpty() || !updateIndex.isEmpty()
+    const bool headless = scan || !denoiseIn.isEmpty() || !separateIn.isEmpty()
+        || !updateIndex.isEmpty()
         || !preferRef.isEmpty() || !releaseId.isEmpty() || listVersions;
 
     if (headless) {
@@ -169,6 +175,16 @@ int main(int argc, char *argv[])
             return runRelease(releaseId, root);
         if (listVersions)
             return runVersions(root);
+
+        if (!separateIn.isEmpty()) {
+            SeparateRequest request;
+            request.input = separateIn;
+            request.outputDir = separateOut;
+            request.modelRef = modelRef;
+            request.storeRoot = root;
+            request.threads = threads;
+            return runSeparate(request);
+        }
 
         if (!updateIndex.isEmpty()) {
             UpdateRequest request;

@@ -71,6 +71,35 @@ if [ -f "$input" ] && [ -f "$voice" ]; then
         "$([ "$(stat -c%s "$outdir/a.wav")" -gt 200000 ] && echo '>200000 bytes' || echo too-small)"
 fi
 
+# Four-stem separation: only when the 300 MB model is actually installed.
+demucs="$root/build/models/music4/htdemucs/4.0.0/htdemucs.onnx"
+if [ -f "$demucs" ] && [ -f "$root/build/testmix/mix.wav" ]; then
+    short="$root/build/testmix/mix3.wav"
+    ffmpeg -v error -y -i "$root/build/testmix/mix.wav" -t 3 "$short"
+
+    stems="$root/build/test-separate"
+    rm -rf "$stems"
+    "$bin" --separate "$short" "$stems" --root "$root/build/models" > /dev/null 2>&1
+
+    check "separate writes four stems" 4 "$(ls "$stems"/*.wav 2>/dev/null | wc -l)"
+
+    quiet=0
+    for f in "$stems"/*.wav; do
+        level="$(ffmpeg -hide_banner -nostats -i "$f" -af volumedetect -f null - 2>&1 \
+                 | grep mean_volume | grep -o '[-0-9.]* dB' | head -1 | cut -d' ' -f1)"
+        # -91 dB is digital silence; anything above -60 dB carries signal.
+        if [ -z "$level" ] || [ "$(printf '%.0f' "$level")" -lt -60 ]; then
+            quiet=$((quiet + 1))
+        fi
+    done
+    check "stems carry signal" 0 "$quiet"
+
+    "$bin" --separate "$short" "$root/build/test-separate-b" --root "$root/build/models" > /dev/null 2>&1
+    check "separation is deterministic" \
+        "$(sha256sum "$stems/mix3_vocals.wav" | cut -d' ' -f1)" \
+        "$(sha256sum "$root/build/test-separate-b/mix3_vocals.wav" | cut -d' ' -f1)"
+fi
+
 # Registry checks against the local file:// fixture from make-registry.sh.
 registry="$root/build/registry/index.json"
 if [ -f "$registry" ]; then
@@ -91,7 +120,7 @@ if [ -f "$registry" ]; then
     cp -r "$root/build/models" "$upgrade"
     "$bin" --update "file://$registry" --root "$upgrade" > /dev/null 2>&1
     check "upgrade keeps the old version" 2 \
-        "$("$bin" --scan --json --root "$upgrade" | grep -c '"id"')"
+        "$("$bin" --scan --json --root "$upgrade" | grep -c '"id": "denoise/gtcrn"')"
     check "newest version is listed first" "1.1.0" \
         "$("$bin" --scan --json --root "$upgrade" | grep '"version"' | head -1 | cut -d'"' -f4)"
 

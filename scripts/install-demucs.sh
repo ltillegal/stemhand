@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Installs htdemucs.onnx as a signed model in a store.
+#
+#   scripts/install-demucs.sh <htdemucs.onnx> [store-root] [signing-key]
+#
+# Note on licensing: Meta publishes the Demucs weights as MIT, the ONNX mirror
+# this file comes from tags them CC-BY-NC-4.0. For a personal install either
+# reading is fine; the manifest records both so a redistribution decision is
+# not made silently.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+onnx="${1:?usage: install-demucs.sh <htdemucs.onnx> [store-root] [signing-key]}"
+store="${2:-$root/build/models}"
+key="${3:-$root/.dev-keys/dev-signing.key}"
+sign="$root/build/stemhand-sign"
+
+[ -x "$sign" ] || { echo "stemhand-sign not built at $sign" >&2; exit 1; }
+[ -f "$onnx" ] || { echo "no such onnx: $onnx" >&2; exit 1; }
+[ -f "$key" ] || { echo "no signing key at $key — run scripts/dev-keys.sh" >&2; exit 1; }
+
+dir="$store/music4/htdemucs/4.0.0"
+mkdir -p "$dir"
+cp "$onnx" "$dir/htdemucs.onnx"
+
+sha="$(sha256sum "$dir/htdemucs.onnx" | cut -d' ' -f1)"
+size="$(stat -c%s "$dir/htdemucs.onnx")"
+
+python3 - "$dir/manifest.json" "$sha" "$size" <<'PY'
+import json, sys
+
+path, sha, size = sys.argv[1:]
+manifest = {
+    "schema": 1,
+    "id": "music4/htdemucs",
+    "version": "4.0.0",
+    "name": "Demucs v4 htdemucs",
+    "kind": "music4",
+    "driver": "htdemucs",
+    "engine_abi": 1,
+    "sample_rate": 44100,
+    "channels": 2,
+    "stems": ["drums", "bass", "other", "vocals"],
+    "eps": ["cpu", "coreml"],
+    "min_engine": "0.1.0",
+    "homepage": "https://github.com/facebookresearch/demucs",
+    "license": {
+        "code": "MIT",
+        "weights": "MIT (Meta release) / cc-by-nc-4.0 (ONNX mirror)",
+        "commercial": False,
+    },
+    "files": [{"path": "htdemucs.onnx", "sha256": sha, "size": int(size)}],
+}
+open(path, "w").write(json.dumps(manifest, indent=2) + "\n")
+PY
+
+"$sign" sign "$dir" "$key" > /dev/null
+echo "$dir"

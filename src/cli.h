@@ -16,6 +16,17 @@ struct DenoiseRequest {
 // Headless denoise path. Returns a process exit code.
 int runDenoise(const DenoiseRequest &request);
 
+struct SeparateRequest {
+    QString input;
+    QString outputDir;
+    QString modelRef;
+    QString storeRoot;
+    int threads = 0;
+};
+
+// Headless four-stem separation path.
+int runSeparate(const SeparateRequest &request);
+
 struct UpdateRequest {
     QUrl indexUrl;
     QString storeRoot;
