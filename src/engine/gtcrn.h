@@ -4,7 +4,9 @@
 
 #include <QString>
 
+#include <atomic>
 #include <complex>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -23,7 +25,9 @@ public:
     GtcrnDenoiser &operator=(const GtcrnDenoiser &) = delete;
 
     bool load(const QString &modelPath, int threads, QString *error);
-    bool process(std::vector<float> &samples, QString *error);
+    bool process(std::vector<float> &samples, QString *error,
+                 const std::function<void(int, int)> &progress = {},
+                 const std::atomic_bool *cancel = nullptr);
 
     int sampleRate() const { return 16000; }
 

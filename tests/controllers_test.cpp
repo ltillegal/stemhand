@@ -25,6 +25,7 @@ private slots:
     void denoisesVoice();
     void mixesStems();
     void cancelsSeparation();
+    void cancelsDenoising();
     void playsStems();
     void remembersMixState();
     void installsFromRegistry();
@@ -164,6 +165,31 @@ void ControllersTest::cancelsSeparation()
     QCOMPARE(finished.count(), 0);
     QVERIFY(controller.stems().isEmpty());
     QVERIFY(controller.message().isEmpty());
+}
+
+void ControllersTest::cancelsDenoising()
+{
+    const QString storeRoot = qEnvironmentVariable("STEMHAND_TEST_MODELS");
+    const QString input = qEnvironmentVariable("STEMHAND_TEST_INPUT");
+    if (storeRoot.isEmpty() || input.isEmpty())
+        QSKIP("set STEMHAND_TEST_MODELS and STEMHAND_TEST_INPUT to run this test");
+
+    ModelStore store;
+    store.setRoot(storeRoot);
+    store.rescan();
+
+    DenoiseController controller(&store);
+    if (!controller.hasVoiceModel())
+        QSKIP("no GTCRN model installed");
+
+    QSignalSpy finished(&controller, &DenoiseController::finished);
+    controller.run(QUrl::fromLocalFile(input));
+    controller.cancel();
+
+    QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 60000);
+    QCOMPARE(finished.count(), 0);
+    QVERIFY(controller.message().isEmpty());
+    QVERIFY(controller.error().contains(QStringLiteral("cancelled")));
 }
 
 void ControllersTest::playsStems()

@@ -136,11 +136,11 @@ ApplicationWindow {
                 }
 
                 Button {
-                    text: qsTr("Denoise voice")
+                    text: denoise.busy ? qsTr("Cancel") : qsTr("Denoise voice")
                     flat: true
                     visible: audio.hasAudio
-                    enabled: denoise.hasVoiceModel && !denoise.busy && !audio.loading
-                    onClicked: denoise.run(audio.path)
+                    enabled: denoise.busy || (denoise.hasVoiceModel && !audio.loading)
+                    onClicked: denoise.busy ? denoise.cancel() : denoise.run(audio.path)
                 }
 
                 Button {

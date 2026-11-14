@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include <QObject>
 #include <QUrl>
 
@@ -34,6 +36,7 @@ public:
     // Writes "<name> (stemhand denoised).wav" next to the input.
     Q_INVOKABLE QString suggestedOutput(const QUrl &input) const;
     Q_INVOKABLE void run(const QUrl &input);
+    Q_INVOKABLE void cancel();
 
 signals:
     void busyChanged();
@@ -41,12 +44,14 @@ signals:
     void errorChanged();
     void voiceModelChanged();
     void finished(const QString &outputPath);
+    void progress(int done, int total);
 
 private:
     void setBusy(bool busy);
     void setMessage(const QString &message);
     void setError(const QString &error);
 
+    std::atomic_bool m_cancel{false};
     ModelStore *m_store = nullptr;
     bool m_busy = false;
     QString m_message;

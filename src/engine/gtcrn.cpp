@@ -116,7 +116,9 @@ bool GtcrnDenoiser::load(const QString &modelPath, int threads, QString *error)
 #endif
 }
 
-bool GtcrnDenoiser::process(std::vector<float> &samples, QString *error)
+bool GtcrnDenoiser::process(std::vector<float> &samples, QString *error,
+                            const std::function<void(int, int)> &progress,
+                            const std::atomic_bool *cancel)
 {
 #ifdef STEMHAND_HAVE_ONNXRUNTIME
     if (!m_impl->loaded) {
@@ -167,6 +169,16 @@ bool GtcrnDenoiser::process(std::vector<float> &samples, QString *error)
             inputNames.push_back(name.c_str());
 
         for (int index = 0; index < frames; ++index) {
+            // Cancelling between frames keeps the worst-case delay under a
+            // millisecond instead of the length of the file.
+            if (cancel && (index % 32) == 0 && cancel->load()) {
+                if (error)
+                    *error = QStringLiteral("cancelled");
+                return false;
+            }
+            if (progress && (index % 64) == 0)
+                progress(index, frames);
+
             const float *source = padded.data() + index * kHop;
             for (int i = 0; i < kFftSize; ++i)
                 frame[i] = {source[i] * m_impl->window[i], 0.0f};
@@ -228,6 +240,9 @@ bool GtcrnDenoiser::process(std::vector<float> &samples, QString *error)
             *error = QStringLiteral("ONNX Runtime: %1").arg(QString::fromUtf8(exception.what()));
         return false;
     }
+
+    if (progress)
+        progress(frames, frames);
 
     for (int i = 0; i < length; ++i) {
         const float normalisation = std::max(weights[pad + i], 1e-8f);

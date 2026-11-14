@@ -25,7 +25,8 @@ struct JobResult {
     double wallSeconds = 0.0;
 };
 
-JobResult runJob(const QString &input, const QString &output, const QString &modelPath)
+JobResult runJob(const QString &input, const QString &output, const QString &modelPath,
+                 const std::function<void(int, int)> &progress, const std::atomic_bool *cancel)
 {
     JobResult result;
     result.output = output;
@@ -48,7 +49,7 @@ JobResult runJob(const QString &input, const QString &output, const QString &mod
 
     QElapsedTimer timer;
     timer.start();
-    if (!denoiser.process(samples, &result.error))
+    if (!denoiser.process(samples, &result.error, progress, cancel))
         return result;
     result.wallSeconds = timer.elapsed() / 1000.0;
 
@@ -84,6 +85,14 @@ QString DenoiseController::suggestedOutput(const QUrl &input) const
     const QFileInfo info(input.toLocalFile());
     return info.absolutePath() + QLatin1Char('/') + info.completeBaseName()
         + QStringLiteral(" (stemhand denoised).wav");
+}
+
+void DenoiseController::cancel()
+{
+    if (!m_busy)
+        return;
+    m_cancel.store(true);
+    setMessage(tr("Cancelling…"));
 }
 
 void DenoiseController::setBusy(bool busy)
@@ -140,6 +149,7 @@ void DenoiseController::run(const QUrl &input)
     }
 
     const QString output = suggestedOutput(input);
+    m_cancel.store(false);
     setError(QString());
     setMessage(tr("Denoising with %1…").arg(modelLabel));
     setBusy(true);
@@ -166,8 +176,14 @@ void DenoiseController::run(const QUrl &input)
         emit finished(result.output);
     });
 
-    watcher->setFuture(QtConcurrent::run([source, output, modelPath] {
-        return runJob(source, output, modelPath);
+    connect(this, &DenoiseController::progress, this, [this](int done, int total) {
+        if (total > 0)
+            setMessage(tr("Denoising… %1%").arg(100 * done / total));
+    });
+
+    watcher->setFuture(QtConcurrent::run([this, source, output, modelPath] {
+        return runJob(source, output, modelPath,
+                      [this](int done, int total) { emit progress(done, total); }, &m_cancel);
     }));
 }
 
