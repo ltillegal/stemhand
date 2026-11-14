@@ -1,6 +1,7 @@
 #include "modelstore.h"
 
 #include "keys.h"
+#include "version.h"
 
 #include <QDesktopServices>
 #include <QDir>
@@ -170,10 +171,15 @@ void ModelStore::rescan()
         loadEntry(it.fileInfo().absolutePath());
     }
 
+    // Newest version first: callers pick the first healthy match for a driver,
+    // and after an upgrade that must be the new version, not whichever one the
+    // filesystem happened to enumerate first.
     std::sort(m_entries.begin(), m_entries.end(), [](const ModelEntry &a, const ModelEntry &b) {
         if (a.manifest.kind != b.manifest.kind)
             return a.manifest.kind < b.manifest.kind;
-        return a.manifest.id < b.manifest.id;
+        if (a.manifest.id != b.manifest.id)
+            return a.manifest.id < b.manifest.id;
+        return versionLess(b.manifest.version, a.manifest.version);
     });
 
     emit changed();

@@ -85,6 +85,16 @@ if [ -f "$registry" ]; then
     check "update is idempotent" "up to date" \
         "$("$bin" --update "file://$registry" --root "$fresh" 2>&1 | grep -o 'up to date' | head -1)"
 
+    # Upgrade path: keep 1.0.0, install 1.1.0 next to it, newest first.
+    upgrade="$root/build/test-upgrade"
+    rm -rf "$upgrade"
+    cp -r "$root/build/models" "$upgrade"
+    "$bin" --update "file://$registry" --root "$upgrade" > /dev/null 2>&1
+    check "upgrade keeps the old version" 2 \
+        "$("$bin" --scan --json --root "$upgrade" | grep -c '"id"')"
+    check "newest version is listed first" "1.1.0" \
+        "$("$bin" --scan --json --root "$upgrade" | grep '"version"' | head -1 | cut -d'"' -f4)"
+
     bad="$root/build/registry-bad"
     rm -rf "$bad"
     cp -r "$root/build/registry" "$bad"

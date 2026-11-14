@@ -45,10 +45,6 @@ bool fetchUrl(const QUrl &url, QByteArray *payload, QString *error);
 
 bool parseIndex(const QUrl &indexUrl, RegistryIndex *index, QString *error);
 
-// Compares dotted versions numerically ("1.10.0" > "1.9.0").
-bool versionLess(const QString &left, const QString &right);
-bool versionEqual(const QString &left, const QString &right);
-
 // Plans what the index offers against what the store already has.
 bool planUpdates(const RegistryIndex &index, ModelStore *store, QList<UpdatePlan> *plan,
                  QString *error);

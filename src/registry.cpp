@@ -1,5 +1,7 @@
 #include "registry.h"
 
+#include "version.h"
+
 #include "keys.h"
 #include "modelstore.h"
 
@@ -128,25 +130,6 @@ bool RegistryIndex::parse(const QByteArray &json, RegistryIndex *index, QString 
         index->models.append(entry);
     }
     return true;
-}
-
-bool versionLess(const QString &left, const QString &right)
-{
-    const QStringList a = left.split(QLatin1Char('.'));
-    const QStringList b = right.split(QLatin1Char('.'));
-    const qsizetype count = std::max(a.size(), b.size());
-    for (qsizetype i = 0; i < count; ++i) {
-        const int x = i < a.size() ? a.at(i).toInt() : 0;
-        const int y = i < b.size() ? b.at(i).toInt() : 0;
-        if (x != y)
-            return x < y;
-    }
-    return false;
-}
-
-bool versionEqual(const QString &left, const QString &right)
-{
-    return !versionLess(left, right) && !versionLess(right, left);
 }
 
 bool parseIndex(const QUrl &indexUrl, RegistryIndex *index, QString *error)
