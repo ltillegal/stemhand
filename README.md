@@ -177,9 +177,18 @@ git не попадает. Ключ генерируется в каждой к�
 ### Тесты
 
 ```bash
-./scripts/test.sh        # 24 проверки: доверие, подмена, денойзинг, стемы, микс, обновления
-cd build && ctest        # 7 Qt-тестов: движки, отмена, воспроизведение, реестр
+./scripts/doctor.sh                        # окружение
+./scripts/build-macos.sh                   # сборка (macOS) или cmake --build build
+cd build-macos && ctest --output-on-failure
+cd .. && ./scripts/test.sh
 ```
+
+`ctest` в чистой копии даёт **4 пройденных и 5 пропущенных**: тесты, которым нужны
+реальные веса, реестр или готовые стемы, сами пропускаются, если этих файлов нет.
+`scripts/test.sh` проверяет то, что не требует скачивания моделей: хранилище,
+подписи, подмену байта, формат манифеста, детерминизм и обновления. Скрипт сам
+находит бинарь в `build/` или `build-macos/`; если сборка лежит в другом месте —
+`STEMHAND_BIN=/path/to/stemhand ./scripts/test.sh`.
 
 ### Лицензии моделей
 
@@ -378,9 +387,19 @@ someone else's public key would pin an anchor nobody can sign with.
 ### Tests
 
 ```bash
-./scripts/test.sh        # 24 checks: trust, tampering, denoising, stems, mixing, updates
-cd build && ctest        # 7 Qt tests: engines, cancellation, playback, registry
+./scripts/doctor.sh                        # environment
+./scripts/build-macos.sh                   # build (macOS) or cmake --build build
+cd build-macos && ctest --output-on-failure
+cd .. && ./scripts/test.sh
 ```
+
+On a clean checkout `ctest` reports **4 passed and 5 skipped**: tests that need
+real weights, a registry fixture or prepared stems skip themselves when those
+files are absent. `scripts/test.sh` covers everything that does not require
+downloading models: the store, signatures, a flipped byte, the manifest format,
+determinism and updates. The script finds the binary in `build/` or
+`build-macos/`; if your build lives elsewhere, use
+`STEMHAND_BIN=/path/to/stemhand ./scripts/test.sh`.
 
 ### Model licences
 

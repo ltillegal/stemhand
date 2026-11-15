@@ -22,7 +22,8 @@ pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium)
 # model directory cannot be made to look valid by shipping a matching key.
 # The signing key belongs to the checkout, not to the repository: a public key
 # committed by someone else would pin a trust anchor nobody can sign with.
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/keys/dev.pub")
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/keys/dev.pub"
+   OR NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.dev-keys/dev-signing.key")
     message(STATUS "Generating a development model-signing key")
     execute_process(
         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/scripts/dev-keys.sh"

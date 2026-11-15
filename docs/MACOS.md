@@ -67,6 +67,9 @@ open build-macos/stemhand.app
 
 Ожидаемый порядок проверки:
 
+0. `./scripts/doctor.sh` — окружение; `cd build-macos && ctest` — 4 теста
+   проходят, 5 пропускаются (нет весов и фикстур); `./scripts/test.sh` — все
+   проверки хранилища и подписей.
 1. `--scan` → каталог `~/Library/Application Support/stemhand/models` и
    «no models installed».
 2. `scripts/install-gtcrn.sh gtcrn_simple.onnx` → модель `denoise/gtcrn`

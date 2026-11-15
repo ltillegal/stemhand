@@ -37,6 +37,8 @@ void ControllersTest::denoisesVoice()
     const QString input = qEnvironmentVariable("STEMHAND_TEST_INPUT");
     if (storeRoot.isEmpty() || input.isEmpty())
         QSKIP("set STEMHAND_TEST_MODELS and STEMHAND_TEST_INPUT to run this test");
+    if (!QDir(storeRoot).exists() || !QFileInfo::exists(input))
+        QSKIP("model fixtures are not present in this checkout");
 
     ModelStore store;
     store.setRoot(storeRoot);
@@ -148,6 +150,8 @@ void ControllersTest::cancelsSeparation()
     const QString input = qEnvironmentVariable("STEMHAND_TEST_INPUT");
     if (storeRoot.isEmpty() || input.isEmpty())
         QSKIP("set STEMHAND_TEST_MODELS and STEMHAND_TEST_INPUT to run this test");
+    if (!QDir(storeRoot).exists() || !QFileInfo::exists(input))
+        QSKIP("model fixtures are not present in this checkout");
 
     ModelStore store;
     store.setRoot(storeRoot);
@@ -289,6 +293,8 @@ void ControllersTest::installsFromRegistry()
     const QString registry = qEnvironmentVariable("STEMHAND_TEST_REGISTRY");
     if (registry.isEmpty())
         QSKIP("set STEMHAND_TEST_REGISTRY to run this test");
+    if (!QFileInfo::exists(registry))
+        QSKIP("registry fixture is not present in this checkout");
 
     QTemporaryDir temporary;
     QVERIFY(temporary.isValid());

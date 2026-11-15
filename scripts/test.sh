@@ -3,8 +3,23 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-bin="$root/build/stemhand"
-sign="$root/build/stemhand-sign"
+
+# The build directory differs by platform: build/ on Linux, build-macos/ on
+# Apple Silicon. Find the binary instead of assuming one.
+bin="${STEMHAND_BIN:-}"
+if [ -z "$bin" ]; then
+    for candidate in "$root/build/stemhand" "$root/build-macos/stemhand"; do
+        if [ -x "$candidate" ]; then
+            bin="$candidate"
+            break
+        fi
+    done
+fi
+if [ -z "$bin" ] || [ ! -x "$bin" ]; then
+    echo "no built binary: run cmake --build first, or set STEMHAND_BIN" >&2
+    exit 1
+fi
+sign="$(dirname "$bin")/stemhand-sign"
 tmp="$root/build/test-models"
 
 fail=0
@@ -24,7 +39,7 @@ check() {
     fi
 }
 
-"$root/scripts/demo-models.sh" > /dev/null
+"$root/scripts/demo-models.sh" "$root/build/demo-models" "$sign" "$root/.dev-keys/dev-signing.key" > /dev/null
 
 check "scan exits 0 on a healthy store" 0 \
     "$("$bin" --scan --root "$root/build/demo-models" > /dev/null 2>&1; echo $?)"
