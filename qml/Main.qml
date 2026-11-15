@@ -46,7 +46,7 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+O"; onActivated: openDialog.open() }
     Shortcut { sequence: "R"; onActivated: store.rescan() }
     Shortcut { sequence: "I"; onActivated: importDialog.open() }
-    Shortcut { sequence: "D"; onActivated: denoise.run(audio.path) }
+    Shortcut { sequence: "D"; onActivated: denoise.run(audio.url) }
     Shortcut { sequence: "Space"; onActivated: player.toggle() }
     Shortcut { sequence: "Q"; onActivated: Qt.quit() }
     Shortcut { sequence: "Ctrl+Q"; onActivated: Qt.quit() }
@@ -132,7 +132,7 @@ ApplicationWindow {
                     flat: true
                     visible: audio.hasAudio
                     enabled: separate.hasStemModel && !denoise.busy
-                    onClicked: separate.busy ? separate.cancel() : separate.run(audio.path)
+                    onClicked: separate.busy ? separate.cancel() : separate.run(audio.url)
                 }
 
                 Button {
@@ -140,7 +140,7 @@ ApplicationWindow {
                     flat: true
                     visible: audio.hasAudio
                     enabled: denoise.busy || (denoise.hasVoiceModel && !audio.loading)
-                    onClicked: denoise.busy ? denoise.cancel() : denoise.run(audio.path)
+                    onClicked: denoise.busy ? denoise.cancel() : denoise.run(audio.url)
                 }
 
                 Button {

@@ -35,6 +35,7 @@ public:
 
     // Writes "<name> (stemhand denoised).wav" next to the input.
     Q_INVOKABLE QString suggestedOutput(const QUrl &input) const;
+    QString suggestedOutputForPath(const QString &path) const;
     Q_INVOKABLE void run(const QUrl &input);
     Q_INVOKABLE void cancel();
 

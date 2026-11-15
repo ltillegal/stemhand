@@ -26,6 +26,7 @@ private slots:
     void mixesStems();
     void cancelsSeparation();
     void cancelsDenoising();
+    void acceptsBarePathFromQml();
     void playsStems();
     void remembersMixState();
     void installsFromRegistry();
@@ -194,6 +195,33 @@ void ControllersTest::cancelsDenoising()
     QCOMPARE(finished.count(), 0);
     QVERIFY(controller.message().isEmpty());
     QVERIFY(controller.error().contains(QStringLiteral("cancelled")));
+}
+
+// QML converts the plain `audio.path` string into a URL with no scheme, whose
+// QUrl::toLocalFile() is empty. That is how the Denoise button reached the
+// controller on macOS, and it failed there while every test passed.
+void ControllersTest::acceptsBarePathFromQml()
+{
+    const QString storeRoot = qEnvironmentVariable("STEMHAND_TEST_MODELS");
+    const QString input = qEnvironmentVariable("STEMHAND_TEST_INPUT");
+    if (storeRoot.isEmpty() || input.isEmpty())
+        QSKIP("set STEMHAND_TEST_MODELS and STEMHAND_TEST_INPUT to run this test");
+    if (!QDir(storeRoot).exists() || !QFileInfo::exists(input))
+        QSKIP("model fixtures are not present in this checkout");
+
+    ModelStore store;
+    store.setRoot(storeRoot);
+    store.rescan();
+
+    DenoiseController controller(&store);
+    QSignalSpy finished(&controller, &DenoiseController::finished);
+    QSignalSpy errors(&controller, &DenoiseController::errorChanged);
+
+    controller.run(QUrl(input)); // deliberately scheme-less
+    QVERIFY(controller.error().isEmpty());
+    QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 120000);
+    QCOMPARE(errors.count(), 0);
+    QCOMPARE(finished.count(), 1);
 }
 
 void ControllersTest::playsStems()

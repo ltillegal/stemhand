@@ -16,6 +16,7 @@ class AudioFile : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString path READ path NOTIFY fileChanged)
+    Q_PROPERTY(QUrl url READ url NOTIFY fileChanged)
     Q_PROPERTY(QString fileName READ fileName NOTIFY fileChanged)
     Q_PROPERTY(double duration READ duration NOTIFY metadataChanged)
     Q_PROPERTY(int sampleRate READ sampleRate NOTIFY metadataChanged)
@@ -31,6 +32,9 @@ public:
     explicit AudioFile(QObject *parent = nullptr);
 
     QString path() const { return m_path; }
+    // QML turns a plain path string into a scheme-less URL, whose toLocalFile()
+    // is empty. Hand QML a real file URL instead.
+    QUrl url() const { return QUrl::fromLocalFile(m_path); }
     QString fileName() const;
     double duration() const { return m_duration; }
     int sampleRate() const { return m_sampleRate; }

@@ -82,7 +82,12 @@ bool DenoiseController::hasVoiceModel() const
 
 QString DenoiseController::suggestedOutput(const QUrl &input) const
 {
-    const QFileInfo info(input.toLocalFile());
+    return suggestedOutputForPath(input.toLocalFile());
+}
+
+QString DenoiseController::suggestedOutputForPath(const QString &path) const
+{
+    const QFileInfo info(path);
     return info.absolutePath() + QLatin1Char('/') + info.completeBaseName()
         + QStringLiteral(" (stemhand denoised).wav");
 }
@@ -124,7 +129,13 @@ void DenoiseController::run(const QUrl &input)
     if (m_busy)
         return;
 
-    const QString source = input.toLocalFile();
+    QString source = input.toLocalFile();
+    if (source.isEmpty()) {
+        // Callers (notably QML) may hand us a scheme-less absolute path.
+        const QString raw = QUrl::fromPercentEncoding(input.toString().toUtf8());
+        if (QDir::isAbsolutePath(raw) && QFileInfo::exists(raw))
+            source = raw;
+    }
     if (source.isEmpty()) {
         setError(tr("Only local files can be processed."));
         return;
@@ -148,7 +159,12 @@ void DenoiseController::run(const QUrl &input)
         return;
     }
 
-    const QString output = suggestedOutput(input);
+    // Use the resolved path, not the QUrl: a scheme-less URL has no local file.
+    const QString output = suggestedOutputForPath(source);
+    if (output.isEmpty()) {
+        setError(tr("Cannot work out where to write the result."));
+        return;
+    }
     m_cancel.store(false);
     setError(QString());
     setMessage(tr("Denoising with %1…").arg(modelLabel));

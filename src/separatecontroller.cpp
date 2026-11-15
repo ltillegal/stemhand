@@ -327,7 +327,12 @@ void SeparateController::run(const QUrl &input)
     if (m_busy)
         return;
 
-    const QString source = input.toLocalFile();
+    QString source = input.toLocalFile();
+    if (source.isEmpty()) {
+        const QString raw = QUrl::fromPercentEncoding(input.toString().toUtf8());
+        if (QDir::isAbsolutePath(raw) && QFileInfo::exists(raw))
+            source = raw;
+    }
     if (source.isEmpty()) {
         setError(tr("Only local files can be separated."));
         return;
