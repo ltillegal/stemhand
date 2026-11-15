@@ -9,6 +9,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$root/scripts/lib/portable.sh"
 version="${1:-1.1.0}"
 out="${2:-$root/build/registry}"
 onnx="${3:-$root/models-dev/gtcrn/gtcrn_simple.onnx}"
@@ -23,8 +24,8 @@ dir="$out/denoise/gtcrn/$version"
 mkdir -p "$dir"
 cp "$onnx" "$dir/gtcrn_simple.onnx"
 
-sha="$(sha256sum "$dir/gtcrn_simple.onnx" | cut -d' ' -f1)"
-size="$(stat -c%s "$dir/gtcrn_simple.onnx")"
+sha="$(sha256_of "$dir/gtcrn_simple.onnx")"
+size="$(file_size "$dir/gtcrn_simple.onnx")"
 
 python3 - "$dir/manifest.json" "$version" "$sha" "$size" <<'PY'
 import json, sys

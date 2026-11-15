@@ -3,6 +3,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$root/scripts/lib/portable.sh"
 
 # Locate the build artefacts (build/ or build-macos/, plain or inside .app).
 . "$root/scripts/lib/find-build.sh"
@@ -38,7 +39,7 @@ check "three models verified" 3 \
 
 rm -rf "$tmp"
 cp -r "$root/build/demo-models" "$tmp"
-dd if=/dev/urandom of="$tmp/music4/htdemucs/4.0.0/weights.bin" bs=1 seek=64 conv=notrunc count=1 status=none
+printf 'X' | dd of="$tmp/music4/htdemucs/4.0.0/weights.bin" bs=1 seek=64 conv=notrunc 2>/dev/null
 
 check "tampered weights exit 1" 1 \
     "$("$bin" --scan --root "$tmp" > /dev/null 2>&1; echo $?)"
@@ -70,15 +71,15 @@ if [ -f "$input" ] && [ -f "$voice" ]; then
     "$bin" --denoise "$input" "$outdir/b.wav" --root "$root/build/models" > /dev/null 2>&1
 
     check "denoise is deterministic" \
-        "$(sha256sum "$outdir/a.wav" | cut -d' ' -f1)" \
-        "$(sha256sum "$outdir/b.wav" | cut -d' ' -f1)"
+        "$(sha256_of "$outdir/a.wav")" \
+        "$(sha256_of "$outdir/b.wav")"
 
     check "denoise changed the signal" \
         "different" \
-        "$([ "$(sha256sum "$outdir/a.wav" | cut -d' ' -f1)" != "$(sha256sum "$input" | cut -d' ' -f1)" ] && echo different || echo same)"
+        "$([ "$(sha256_of "$outdir/a.wav")" != "$(sha256_of "$input")" ] && echo different || echo same)"
 
     check "denoise writes a real wav" ">200000 bytes" \
-        "$([ "$(stat -c%s "$outdir/a.wav")" -gt 200000 ] && echo '>200000 bytes' || echo too-small)"
+        "$([ "$(file_size "$outdir/a.wav")" -gt 200000 ] && echo '>200000 bytes' || echo too-small)"
 fi
 
 # Four-stem separation: only when the 300 MB model is actually installed.
@@ -105,8 +106,8 @@ if [ -f "$demucs" ] && [ -f "$root/build/testmix/mix.wav" ]; then
 
     "$bin" --separate "$short" "$root/build/test-separate-b" --root "$root/build/models" > /dev/null 2>&1
     check "separation is deterministic" \
-        "$(sha256sum "$stems/mix3_vocals.wav" | cut -d' ' -f1)" \
-        "$(sha256sum "$root/build/test-separate-b/mix3_vocals.wav" | cut -d' ' -f1)"
+        "$(sha256_of "$stems/mix3_vocals.wav")" \
+        "$(sha256_of "$root/build/test-separate-b/mix3_vocals.wav")"
 fi
 
 # Mixer: solo must isolate a stem sample-for-sample, mute-all must be silence.
@@ -117,8 +118,8 @@ if [ -d "$stemsdir" ]; then
         --mute drums --mute bass --mute other --mute vocals > /dev/null 2>&1
 
     check "solo isolates the stem" \
-        "$(sha256sum "$stemsdir/mix3_vocals.wav" | cut -d' ' -f1)" \
-        "$(sha256sum "$root/build/test-mix-solo.wav" | cut -d' ' -f1)"
+        "$(sha256_of "$stemsdir/mix3_vocals.wav")" \
+        "$(sha256_of "$root/build/test-mix-solo.wav")"
 
     check "muting everything is silenced" "-91.0" \
         "$(mean_volume "$root/build/test-mix-mute.wav")"
@@ -165,7 +166,7 @@ if [ -f "$registry" ]; then
     bad="$root/build/registry-bad"
     rm -rf "$bad"
     cp -r "$root/build/registry" "$bad"
-    printf 'X' | dd of="$bad/denoise/gtcrn/1.1.0/gtcrn_simple.onnx" bs=1 seek=5000 conv=notrunc status=none
+    printf 'X' | dd of="$bad/denoise/gtcrn/1.1.0/gtcrn_simple.onnx" bs=1 seek=5000 conv=notrunc 2>/dev/null
 
     poisoned="$root/build/test-update-bad"
     rm -rf "$poisoned"

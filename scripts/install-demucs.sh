@@ -10,6 +10,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$root/scripts/lib/portable.sh"
 onnx="${1:?usage: install-demucs.sh <htdemucs.onnx> [store-root] [signing-key]}"
 # Default to the store the app itself uses, so an install needs no path.
 if [ "$(uname -s)" = "Darwin" ]; then
@@ -30,8 +31,8 @@ dir="$store/music4/htdemucs/4.0.0"
 mkdir -p "$dir"
 cp "$onnx" "$dir/htdemucs.onnx"
 
-sha="$(sha256sum "$dir/htdemucs.onnx" | cut -d' ' -f1)"
-size="$(stat -c%s "$dir/htdemucs.onnx")"
+sha="$(sha256_of "$dir/htdemucs.onnx")"
+size="$(file_size "$dir/htdemucs.onnx")"
 
 python3 - "$dir/manifest.json" "$sha" "$size" <<'PY'
 import json, sys

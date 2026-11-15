@@ -8,6 +8,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$root/scripts/lib/portable.sh"
 onnx="${1:?usage: install-gtcrn.sh <gtcrn_simple.onnx> [store-root] [signing-key]}"
 # Default to the store the app itself uses, so an install needs no path.
 if [ "$(uname -s)" = "Darwin" ]; then
@@ -28,8 +29,8 @@ dir="$store/denoise/gtcrn/1.0.0"
 mkdir -p "$dir"
 cp "$onnx" "$dir/gtcrn_simple.onnx"
 
-sha="$(sha256sum "$dir/gtcrn_simple.onnx" | cut -d' ' -f1)"
-size="$(stat -c%s "$dir/gtcrn_simple.onnx")"
+sha="$(sha256_of "$dir/gtcrn_simple.onnx")"
+size="$(file_size "$dir/gtcrn_simple.onnx")"
 
 python3 - "$dir/manifest.json" "$sha" "$size" <<'PY'
 import json, sys

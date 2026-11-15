@@ -4,6 +4,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$root/scripts/lib/portable.sh"
 out="${1:-$root/build/demo-models}"
 . "$root/scripts/lib/find-build.sh"
 stemhand_locate_sign "$root" > /dev/null 2>&1 || true
@@ -29,8 +30,8 @@ make_model() {
     head -c $((kb * 1024)) /dev/urandom > "$dir/weights.bin"
 
     local sha size
-    sha="$(sha256sum "$dir/weights.bin" | cut -d' ' -f1)"
-    size="$(stat -c%s "$dir/weights.bin")"
+    sha="$(sha256_of "$dir/weights.bin")"
+    size="$(file_size "$dir/weights.bin")"
 
     python3 - "$dir/manifest.json" "$id" "$version" "$name" "$kind" "$stems" "$license" "$commercial" "$sha" "$size" <<'PY'
 import json, sys
