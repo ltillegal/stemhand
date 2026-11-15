@@ -233,6 +233,24 @@ int main(int argc, char *argv[])
         return runDenoise(request);
     }
 
+#if defined(Q_OS_LINUX)
+    // Qt aborts inside platform-plugin init, leaving a core dump and a message
+    // about xcb-cursor. Neither says the real cause: this shell has no display.
+    if (qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY") && qEnvironmentVariableIsEmpty("DISPLAY")
+        && qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
+        std::fprintf(stderr,
+                     "stemhand: no display is available to this shell.\n"
+                     "  WAYLAND_DISPLAY and DISPLAY are both empty, which is what a\n"
+                     "  terminal outside the graphical session looks like. Run it from a\n"
+                     "  terminal inside your desktop session, or set them explicitly:\n"
+                     "    WAYLAND_DISPLAY=wayland-1 XDG_RUNTIME_DIR=/run/user/$(id -u) \\\n"
+                     "      ./build/stemhand file.wav\n"
+                     "  Headless commands (--scan, --denoise, --separate, --mix, --update)\n"
+                     "  work without a display.\n");
+        return 1;
+    }
+#endif
+
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("stemhand"));
     QGuiApplication::setApplicationVersion(QStringLiteral(STEMHAND_VERSION));
