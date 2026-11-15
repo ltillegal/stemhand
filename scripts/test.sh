@@ -8,7 +8,11 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Apple Silicon. Find the binary instead of assuming one.
 bin="${STEMHAND_BIN:-}"
 if [ -z "$bin" ]; then
-    for candidate in "$root/build/stemhand" "$root/build-macos/stemhand"; do
+    for candidate in \
+        "$root/build/stemhand" \
+        "$root/build-macos/stemhand" \
+        "$root/build-macos/stemhand.app/Contents/MacOS/stemhand" \
+        "$root/build/stemhand.app/Contents/MacOS/stemhand"; do
         if [ -x "$candidate" ]; then
             bin="$candidate"
             break
@@ -19,7 +23,15 @@ if [ -z "$bin" ] || [ ! -x "$bin" ]; then
     echo "no built binary: run cmake --build first, or set STEMHAND_BIN" >&2
     exit 1
 fi
-sign="$(dirname "$bin")/stemhand-sign"
+
+# Inside a macOS bundle the helper tools live one level above the .app, not
+# next to the executable.
+case "$bin" in
+    # "…/build-macos/stemhand.app/Contents/MacOS/stemhand" -> "…/build-macos"
+    *.app/Contents/MacOS/*) build_dir="$(dirname "${bin%%.app/*}")" ;;
+    *) build_dir="$(dirname "$bin")" ;;
+esac
+sign="$build_dir/stemhand-sign"
 tmp="$root/build/test-models"
 
 fail=0
