@@ -122,14 +122,21 @@ ONNX Runtime необязателен при конфигурации: без н
 
 ### Скорость
 
-Наблюдаемый диапазон на машине разработки (i5-3210M, 2 ядра / 4 потока, без
-GPU) — **0.13–0.46× реального времени** для разделения (8 с аудио за 17–60 с).
-Разброс не от кода: фоновая нагрузка хоста гуляет (load average 7–8 при двух
-ядрах), и любой замер здесь смещён. Сравнивать числа можно только внутри одного
-«тихого» окна; на M1 нужен отдельный замер.
+Денойзинг речи, один поток, только CPU (без CoreML):
 
-Денойзинг речи на той же машине — 4.9–5.7× реального времени в один поток.
-Больше потоков делает его медленнее: граф крошечный, синхронизация дороже
+| Машина | Аудио | Время | Реальное время |
+|---|---|---|---|
+| Apple M1 | 176 с | 8.35 с | **21.1×** |
+| i5-3210M (2012) | 9.77 с | 1.7–2.1 с | 4.9–5.7× |
+
+Замер на M1 — из интерфейса, на реальной записи; на i5 — из CLI, с оговоркой про
+фоновую нагрузку хоста (она гуляет, поэтому там диапазон). Разница примерно
+вчетверо на одно ядро — это и есть смена микроархитектуры за десять лет.
+
+Разделение на стемы на i5 идёт со скоростью **0.13–0.46×** реального времени
+(8 с аудио за 17–60 с); на M1 пока не измерялось.
+
+Больше потоков делает денойзинг медленнее: граф крошечный, синхронизация дороже
 вычислений, поэтому по умолчанию один поток.
 
 ### Модели
@@ -331,15 +338,22 @@ the engine, and the denoiser says plainly that the engine is missing.
 
 ### Speed
 
-The observed range on the development machine (i5-3210M, 2 cores / 4 threads, no
-GPU) is **0.13–0.46× realtime** for separation (8 s of audio in 17–60 s). The
-spread is not the code: the host's background load moves between 7 and 8 on two
-cores, so every measurement here is biased. Numbers are comparable only within
-one quiet window; Apple Silicon needs its own measurement.
+Speech denoising, one thread, CPU only (no CoreML):
 
-Speech denoising on the same machine runs at 4.9–5.7× realtime on one thread.
-More threads make it slower: the graph is tiny and synchronisation costs more
-than the arithmetic, so one thread is the default.
+| Machine | Audio | Time | Realtime |
+|---|---|---|---|
+| Apple M1 | 176 s | 8.35 s | **21.1×** |
+| i5-3210M (2012) | 9.77 s | 1.7–2.1 s | 4.9–5.7× |
+
+The M1 number comes from the app itself on a real recording; the i5 one from the
+CLI, with the caveat that the host's background load drifts, hence the range.
+Roughly four times faster per core — that is ten years of microarchitecture.
+
+Stem separation on the i5 runs at **0.13–0.46× realtime** (8 s of audio in
+17–60 s); it has not been measured on M1 yet.
+
+More threads make denoising slower: the graph is tiny and synchronisation costs
+more than the arithmetic, so one thread is the default.
 
 ### Models
 
