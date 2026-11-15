@@ -128,19 +128,35 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
 
                 Button {
+                    id: separateButton
                     text: separate.busy ? qsTr("Cancel") : qsTr("Separate 4 stems")
                     flat: true
                     visible: audio.hasAudio
                     enabled: separate.hasStemModel && !denoise.busy
                     onClicked: separate.busy ? separate.cancel() : separate.run(audio.url)
+
+                    HoverHandler { id: separateHover }
+
+                    ToolTip.visible: separateHover.hovered && !separateButton.enabled
+                    ToolTip.text: !separate.hasStemModel
+                                  ? qsTr("No stem model installed — run scripts/install-demucs.sh")
+                                  : qsTr("Busy with another job")
                 }
 
                 Button {
+                    id: denoiseButton
                     text: denoise.busy ? qsTr("Cancel") : qsTr("Denoise voice")
                     flat: true
                     visible: audio.hasAudio
                     enabled: denoise.busy || (denoise.hasVoiceModel && !audio.loading)
                     onClicked: denoise.busy ? denoise.cancel() : denoise.run(audio.url)
+
+                    HoverHandler { id: denoiseHover }
+
+                    ToolTip.visible: denoiseHover.hovered && !denoiseButton.enabled
+                    ToolTip.text: !denoise.hasVoiceModel
+                                  ? qsTr("No voice model installed — run scripts/install-gtcrn.sh")
+                                  : qsTr("Waiting for the audio to load")
                 }
 
                 Button {
@@ -215,7 +231,10 @@ ApplicationWindow {
                             visible: store.models.length === 0
                             wrapMode: Text.WordWrap
                             horizontalAlignment: Text.AlignHCenter
-                            text: qsTr("No models yet.\nPress I to import a folder with manifest.json.")
+                            text: qsTr("No models yet.\n\nFrom a terminal:\n"
+                                      + "./scripts/install-gtcrn.sh gtcrn_simple.onnx\n"
+                                      + "./scripts/install-demucs.sh htdemucs.onnx\n\n"
+                                      + "or press I to import a folder with manifest.json.")
                             color: pal.dim
                             font.pixelSize: 12
                             lineHeight: 1.4
