@@ -25,7 +25,8 @@ ort_prefix="$(brew --prefix onnxruntime)"
 
 cmake -S "$root" -B "$build" -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH="$qt_prefix" \
-    -DONNXRUNTIME_ROOT="$ort_prefix"
+    -DONNXRUNTIME_ROOT="$ort_prefix" \
+    -DSTEMHAND_REQUIRE_ENGINE=ON
 cmake --build "$build" -j
 
 app="$build/stemhand.app"

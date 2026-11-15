@@ -44,8 +44,19 @@ configure_file(cmake/pinned_key.h.in "${CMAKE_CURRENT_BINARY_DIR}/pinned_key.h" 
 # onnxruntime`).
 set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnxruntime-linux-x64-1.32.0"
     CACHE PATH "ONNX Runtime root")
+
+# Turn an accidentally engine-less build into a configuration error. The app
+# still builds without ONNX Runtime, but shipping it that way is never intended.
+option(STEMHAND_REQUIRE_ENGINE "Fail configuration when ONNX Runtime is missing" OFF)
+
+# The release tarball puts headers in <root>/include, Homebrew in
+# <root>/include/onnxruntime. Both are searched; guessing one of them cost a
+# macOS debugging round.
 find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h
-    HINTS "${ONNXRUNTIME_ROOT}/include" "${ONNXRUNTIME_ROOT}/Headers")
+    HINTS
+        "${ONNXRUNTIME_ROOT}/include"
+        "${ONNXRUNTIME_ROOT}/include/onnxruntime"
+        "${ONNXRUNTIME_ROOT}/Headers")
 find_library(ONNXRUNTIME_LIBRARY onnxruntime HINTS "${ONNXRUNTIME_ROOT}/lib")
 
 set(STEMHAND_ENGINE_SOURCES
@@ -62,6 +73,13 @@ set(STEMHAND_ENGINE_SOURCES
 
 if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
     message(STATUS "ONNX Runtime: ${ONNXRUNTIME_LIBRARY}")
+elseif(STEMHAND_REQUIRE_ENGINE)
+    message(FATAL_ERROR
+        "ONNX Runtime not found under ${ONNXRUNTIME_ROOT}.\n"
+        "  looked for onnxruntime_cxx_api.h in: include, include/onnxruntime, Headers\n"
+        "  looked for libonnxruntime in: lib\n"
+        "  macOS: brew install onnxruntime, then -DONNXRUNTIME_ROOT=$(brew --prefix onnxruntime)\n"
+        "  Linux: ./scripts/fetch-onnxruntime.sh")
 else()
     message(WARNING "ONNX Runtime not found — the denoise engine will be stubbed")
 endif()
