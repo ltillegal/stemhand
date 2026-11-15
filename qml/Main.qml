@@ -271,11 +271,18 @@ ApplicationWindow {
                         spacing: 2
 
                         Button {
+                            id: updateButton
                             Layout.fillWidth: true
                             text: updates.busy ? qsTr("Checking…") : qsTr("Update models")
                             flat: true
-                            enabled: !updates.busy
+                            enabled: updates.canCheck && !updates.busy
                             onClicked: updates.checkAndInstall()
+
+                            HoverHandler { id: updateHover }
+
+                            ToolTip.visible: updateHover.hovered && !updateButton.enabled
+                            ToolTip.text: qsTr("No registry configured.\n"
+                                               + "Run once: stemhand --update <index-url>")
                         }
 
                         RowLayout {
@@ -539,10 +546,8 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: visible ? 26 : 0
-                    visible: (denoise.message.length > 0 || updates.message.length > 0
-                              || separate.message.length > 0)
-                             && denoise.error.length === 0 && updates.error.length === 0
-                             && separate.error.length === 0
+                    visible: denoise.message.length > 0 || updates.message.length > 0
+                             || separate.message.length > 0
                     color: (denoise.busy || updates.busy || separate.busy) ? "#1b1a10" : "#0f1a17"
 
                     Text {

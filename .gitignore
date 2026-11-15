@@ -6,3 +6,6 @@ build/
 models-dev/
 third_party/
 keys/dev.pub
+
+# Model weights are never committed
+*.onnx
