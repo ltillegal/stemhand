@@ -13,9 +13,10 @@ version="${1:-1.1.0}"
 out="${2:-$root/build/registry}"
 onnx="${3:-$root/models-dev/gtcrn/gtcrn_simple.onnx}"
 key="$root/.dev-keys/dev-signing.key"
-sign="$root/build/stemhand-sign"
+. "$root/scripts/lib/find-build.sh"
+stemhand_locate_sign "$root" || exit 1
+sign="$STEMHAND_SIGN_PATH"
 
-[ -x "$sign" ] || { echo "stemhand-sign not built" >&2; exit 1; }
 [ -f "$onnx" ] || { echo "no onnx at $onnx" >&2; exit 1; }
 
 dir="$out/denoise/gtcrn/$version"

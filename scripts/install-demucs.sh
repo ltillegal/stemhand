@@ -19,9 +19,10 @@ else
 fi
 store="${2:-$default_store}"
 key="${3:-$root/.dev-keys/dev-signing.key}"
-sign="$root/build/stemhand-sign"
+. "$root/scripts/lib/find-build.sh"
+stemhand_locate_sign "$root" || exit 1
+sign="$STEMHAND_SIGN_PATH"
 
-[ -x "$sign" ] || { echo "stemhand-sign not built at $sign" >&2; exit 1; }
 [ -f "$onnx" ] || { echo "no such onnx: $onnx" >&2; exit 1; }
 [ -f "$key" ] || { echo "no signing key at $key — run scripts/dev-keys.sh" >&2; exit 1; }
 

@@ -5,7 +5,9 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 out="${1:-$root/build/demo-models}"
-sign="${2:-$root/build/stemhand-sign}"
+. "$root/scripts/lib/find-build.sh"
+stemhand_locate_sign "$root" > /dev/null 2>&1 || true
+sign="${2:-${STEMHAND_SIGN_PATH:-$root/build/stemhand-sign}}"
 key="${3:-$root/.dev-keys/dev-signing.key}"
 
 if [ ! -x "$sign" ]; then
