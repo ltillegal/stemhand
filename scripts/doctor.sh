@@ -69,7 +69,14 @@ else
 fi
 
 if pkg-config --exists libsodium 2>/dev/null; then
-    ok "libsodium $(pkg-config --modversion libsodium)"
+    libdir="$(pkg-config --variable=libdir libsodium)"
+    ok "libsodium $(pkg-config --modversion libsodium) ($libdir)"
+    if [ "$(uname -s)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ]; then
+        dylib="$libdir/libsodium.dylib"
+        if [ -f "$dylib" ] && ! file "$dylib" | grep -q arm64; then
+            bad "libsodium at $libdir is not arm64 — a stale Intel Homebrew is in the way"
+        fi
+    fi
 else
     bad "libsodium (brew install libsodium)"
 fi

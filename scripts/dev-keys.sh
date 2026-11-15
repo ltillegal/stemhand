@@ -34,7 +34,16 @@ int main(void) {
 }
 EOF
 
-gcc -O2 -o "$tmp/keygen" "$tmp/keygen.c" -lsodium
+# Ask pkg-config where libsodium actually is. On Apple Silicon a stale Intel
+# Homebrew in /usr/local is still on the linker's default path, and a bare
+# -lsodium picks up its x86_64 dylib instead of the arm64 one.
+if command -v pkg-config > /dev/null && pkg-config --exists libsodium 2>/dev/null; then
+    sodium_flags="$(pkg-config --cflags --libs libsodium)"
+else
+    sodium_flags="-lsodium"
+fi
+# shellcheck disable=SC2086
+gcc -O2 -o "$tmp/keygen" "$tmp/keygen.c" $sodium_flags
 "$tmp/keygen" > "$tmp/out"
 
 head -n 1 "$tmp/out" > "$root/keys/dev.pub"
