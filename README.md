@@ -189,6 +189,12 @@ cd build && ctest        # 7 Qt-тестов: движки, отмена, вос
 у авторов. MUSDB18, на котором обучено почти всё, сам некоммерческий
 (`CC BY-NC-SA`).
 
+### Лицензия
+
+Код — MIT (см. [LICENSE](LICENSE)). Веса моделей под неё не попадают: у каждого
+своя лицензия, разбор в [docs/MODELS.md](docs/MODELS.md). В репозитории весов
+нет — приложение скачивает их у авторов.
+
 ### Дальше
 
 Проверить сборку на M1 и снять там первые честные секунды; подключить CoreML
@@ -383,6 +389,12 @@ restrictions, but `DrumSep 5-stem`, `BS-RoFormer` and `Spleeter` **state no
 licence for their weights** — they cannot be redistributed, only downloaded
 from their authors. MUSDB18, which nearly everything is trained on, is itself
 non-commercial (`CC BY-NC-SA`).
+
+### Licence
+
+The code is MIT (see [LICENSE](LICENSE)). Model weights are not covered: each
+has its own licence, broken down in [docs/MODELS.md](docs/MODELS.md). No weights
+are shipped here — the app downloads them from their authors.
 
 ### Next
 
