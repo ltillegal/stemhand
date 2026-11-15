@@ -34,8 +34,10 @@ if [ ! -d "$app" ]; then
     exit 1
 fi
 
-# Qt plugins first, then the third-party dylib, then the rpath that points at it.
-"$qt_prefix/bin/macdeployqt" "$app" -always-overwrite
+# Qt plugins and QML modules. -qmldir matters: our QML is compiled into the
+# binary as resources, so macdeployqt has nothing on disk to scan and would
+# otherwise ship no QML modules at all ("module QtQuick.Controls not found").
+"$qt_prefix/bin/macdeployqt" "$app" -always-overwrite -qmldir="$root/qml"
 
 mkdir -p "$app/Contents/Frameworks"
 cp "$ort_prefix"/lib/libonnxruntime*.dylib "$app/Contents/Frameworks/"

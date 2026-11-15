@@ -85,6 +85,7 @@ open build-macos/stemhand.app
 | «ffmpeg and ffprobe are required but were not found in PATH» | Finder запускает `.app` с урезанным `PATH` | запускать из терминала или добавить `/opt/homebrew/bin` в окружение LaunchAgent |
 | `dyld: Library not loaded: libonnxruntime...` | dylib не забандлен | шаг 2–4 выше |
 | `Qt platform plugin "cocoa" not found` | `macdeployqt` не прогнан | прогнать |
+| `module "QtQuick.Controls" plugin ... not found` | QML скомпилирован в ресурсы, и `macdeployqt` без `-qmldir` не знает, какие модули копировать | `macdeployqt … -qmldir=qml` (уже в `build-macos.sh`) |
 | Медленнее, чем ожидалось | используется CPU-провайдер, CoreML ещё не включён | это ожидаемо: `CoreML` EP — следующий шаг, сейчас в коде только CPU |
 | Модель 289 МБ не скачивается | нет сети/редиректа | скачать вручную и положить рядом, затем `--update file://...` |
 
