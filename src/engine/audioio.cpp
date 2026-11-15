@@ -1,5 +1,6 @@
 #include "audioio.h"
 
+#include <QFileInfo>
 #include <QProcess>
 #include <QStandardPaths>
 
@@ -8,6 +9,33 @@
 #include <cmath>
 
 namespace stemhand {
+namespace {
+
+QStringList toolDirectories()
+{
+    QStringList directories = {QStringLiteral("/opt/homebrew/bin"), QStringLiteral("/usr/local/bin"),
+                               QStringLiteral("/usr/bin"), QStringLiteral("/bin")};
+#ifdef Q_OS_MACOS
+    directories.prepend(QStringLiteral("/opt/homebrew/bin"));
+#endif
+    return directories;
+}
+
+} // namespace
+
+QString findTool(const QString &name)
+{
+    const QString fromPath = QStandardPaths::findExecutable(name);
+    if (!fromPath.isEmpty())
+        return fromPath;
+
+    for (const QString &directory : toolDirectories()) {
+        const QFileInfo candidate(directory + QLatin1Char('/') + name);
+        if (candidate.isExecutable())
+            return candidate.absoluteFilePath();
+    }
+    return QString();
+}
 
 bool decodeToMono(const QString &path, int sampleRate, QVector<float> *samples, QString *error)
 {
@@ -17,7 +45,7 @@ bool decodeToMono(const QString &path, int sampleRate, QVector<float> *samples, 
 bool decodeToChannels(const QString &path, int sampleRate, int channels,
                       QVector<float> *interleaved, QString *error)
 {
-    const QString ffmpeg = QStandardPaths::findExecutable(QStringLiteral("ffmpeg"));
+    const QString ffmpeg = findTool(QStringLiteral("ffmpeg"));
     if (ffmpeg.isEmpty()) {
         if (error)
             *error = QStringLiteral("ffmpeg is not in PATH");
@@ -66,7 +94,7 @@ bool decodeToChannels(const QString &path, int sampleRate, int channels,
 
 bool writeWav(const QString &path, const QVector<float> &samples, int sampleRate, QString *error)
 {
-    const QString ffmpeg = QStandardPaths::findExecutable(QStringLiteral("ffmpeg"));
+    const QString ffmpeg = findTool(QStringLiteral("ffmpeg"));
     if (ffmpeg.isEmpty()) {
         if (error)
             *error = QStringLiteral("ffmpeg is not in PATH");

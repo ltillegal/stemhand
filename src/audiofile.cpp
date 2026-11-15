@@ -1,5 +1,7 @@
 #include "audiofile.h"
 
+#include "engine/audioio.h"
+
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -17,7 +19,7 @@ constexpr int kPeakBuckets = 2400;
 
 QString toolPath(const QString &name)
 {
-    return QStandardPaths::findExecutable(name);
+    return findTool(name);
 }
 
 } // namespace

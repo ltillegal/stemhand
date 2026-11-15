@@ -5,6 +5,11 @@
 
 namespace stemhand {
 
+// Locates ffmpeg/ffprobe. PATH first, then the places Homebrew and distros put
+// them: an .app launched from Finder gets a minimal PATH and would otherwise
+// report that ffmpeg is missing on a machine where it is installed.
+QString findTool(const QString &name);
+
 // Blocking ffmpeg I/O for the CLI path. The GUI will get a streaming variant
 // later; the trade here is one code path that behaves the same everywhere.
 bool decodeToChannels(const QString &path, int sampleRate, int channels,
