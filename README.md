@@ -2,6 +2,8 @@
 
 [Русский](#русский) · [English](#english)
 
+[![Donate](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white)](https://www.paypal.com/ncp/payment/MAMKZM5TTVN5U)
+
 Local stem separation and voice cleanup: four stems out of a finished mix, drum
 parts, speech denoising — all on your own machine, nothing uploaded.
 Target platform is macOS on Apple Silicon; development happens on Linux.
@@ -422,6 +424,14 @@ restrictions, but `DrumSep 5-stem`, `BS-RoFormer` and `Spleeter` **state no
 licence for their weights** — they cannot be redistributed, only downloaded
 from their authors. MUSDB18, which nearly everything is trained on, is itself
 non-commercial (`CC BY-NC-SA`).
+
+### Support
+
+If Stemhand saves you time, you can support the project:
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white)](https://www.paypal.com/ncp/payment/MAMKZM5TTVN5U)
+
+PayPal: [Donate](https://www.paypal.com/ncp/payment/MAMKZM5TTVN5U)
 
 ### Licence
 
