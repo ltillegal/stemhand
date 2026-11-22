@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
     bool asJson = false;
     QString root;
     QString screenshot;
-    QString openPath;
+    QStringList openPaths;
     QString denoiseIn;
     QString denoiseOut;
     QString separateIn;
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
             if (collectingBatch)
                 batchFiles.append(arg);
             else
-                openPath = arg;
+                openPaths.append(arg);
         }
     }
 
@@ -361,8 +361,17 @@ int main(int argc, char *argv[])
     if (engine.rootObjects().isEmpty())
         return 1;
 
-    if (!openPath.isEmpty())
-        audio.load(QUrl::fromLocalFile(openPath));
+    if (!openPaths.isEmpty())
+        audio.load(QUrl::fromLocalFile(openPaths.first()));
+
+    // Several files on the command line mean a batch: open the first, queue the
+    // rest, so `stemhand *.wav` does something sensible.
+    if (openPaths.size() > 1) {
+        QList<QUrl> queued;
+        for (const QString &path : openPaths)
+            queued.append(QUrl::fromLocalFile(path));
+        batch.addFiles(queued);
+    }
 
     if (!screenshot.isEmpty()) {
         QTimer::singleShot(1200, &engine, [&engine, screenshot] {

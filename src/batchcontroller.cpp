@@ -151,9 +151,12 @@ void BatchController::start()
         return;
 
     QStringList inputs;
-    for (const Job &job : m_jobs) {
-        if (job.status == QLatin1String("pending"))
-            inputs.append(job.path);
+    QVector<int> queuedIndices; // row in m_jobs for each queued input
+    for (int index = 0; index < m_jobs.size(); ++index) {
+        if (m_jobs.at(index).status == QLatin1String("pending")) {
+            inputs.append(m_jobs.at(index).path);
+            queuedIndices.append(index);
+        }
     }
     if (inputs.isEmpty()) {
         setError(tr("Nothing left to process. Add files or clear the queue."));
@@ -245,16 +248,20 @@ void BatchController::start()
                        .arg(QFileInfo(outcome.outputDirectory).fileName()));
     });
 
-    watcher->setFuture(QtConcurrent::run([this, operation, queued, outputDirectory, modelPath,
-                                          threads] {
+    watcher->setFuture(QtConcurrent::run([this, operation, queued, queuedIndices, outputDirectory,
+                                          modelPath, threads] {
         return runBatch(operation, queued, outputDirectory, modelPath, threads,
-                        [this](int index, int total) {
-                            QMetaObject::invokeMethod(this, [this, index, total] {
-                                if (index < m_jobs.size()) {
-                                    m_jobs[index].status = QStringLiteral("running");
+                        [this, queuedIndices](int index, int total) {
+                            const int row = index < queuedIndices.size() ? queuedIndices.at(index)
+                                                                         : -1;
+                            QMetaObject::invokeMethod(this, [this, row, index, total] {
+                                if (row >= 0 && row < m_jobs.size()) {
+                                    m_jobs[row].status = QStringLiteral("running");
                                     rebuildJobs();
                                 }
-                                setMessage(tr("Processing %1 of %2…").arg(index + 1).arg(total));
+                                setMessage(tr("Processing %1 of %2…")
+                                               .arg(index + 1)
+                                               .arg(total));
                             }, Qt::QueuedConnection);
                         },
                         &m_cancel);

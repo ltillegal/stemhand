@@ -63,7 +63,8 @@ Target platform is macOS on Apple Silicon; development happens on Linux.
 - Ошибка на одном файле не останавливает очередь: он помечается как failed,
   остальные обрабатываются, код возврата 1.
 - В приложении — кнопка **Batch…**: выбрать несколько файлов, переключить
-  Denoise/Stems, **Start**. Каждая строка показывает состояние: pending,
+  Denoise/Stems, **Start**. Несколько файлов в командной строке (`stemhand a.wav
+  b.wav c.wav`) тоже попадают в очередь. Каждая строка показывает состояние: pending,
   running, ok с временем или текст ошибки.
 
 **Обновление моделей по сети:**
@@ -288,7 +289,8 @@ Linux.
 - One failing file does not stop the queue: it is marked failed, the rest are
   processed, and the exit code is 1.
 - In the app — the **Batch…** button: pick several files, switch Denoise/Stems,
-  press **Start**. Each row reports pending, running, ok with a timing, or the
+  press **Start**. Several files on the command line (`stemhand a.wav b.wav
+  c.wav`) also land in the queue. Each row reports pending, running, ok with a timing, or the
   error text.
 
 **Model updates over the network:**
