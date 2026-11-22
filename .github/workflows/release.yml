@@ -86,6 +86,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Checksums must cover every asset, and the Linux job cannot know the
+          # macOS package, so they are computed here over the merged artifacts.
+          ( cd dist && rm -f SHA256SUMS && sha256sum * > SHA256SUMS )
           ls -la dist
           gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Stemhand ${GITHUB_REF_NAME#v}" \
