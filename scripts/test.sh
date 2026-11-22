@@ -110,6 +110,25 @@ if [ -f "$demucs" ] && [ -f "$root/build/testmix/mix.wav" ]; then
         "$(sha256_of "$root/build/test-separate-b/mix3_vocals.wav")"
 fi
 
+# Batch: one model, many files, and a bad file must not stop the queue.
+voice="$root/build/models/denoise/gtcrn/1.0.0/gtcrn_simple.onnx"
+if [ -f "$voice" ] && [ -f "$root/build/testmix/mix3.wav" ]; then
+    batchdir="$root/build/test-batch"
+    rm -rf "$batchdir"
+    "$bin" --batch denoise "$batchdir" "$root/build/testmix/mix3.wav" \
+        "$root/build/testmix/mix6.wav" > /dev/null 2>&1
+    check "batch denoise writes every file" 2 "$(ls "$batchdir"/*.wav 2>/dev/null | wc -l)"
+
+    echo "not audio" > "$root/build/test-batch-bogus.wav"
+    mixed="$root/build/test-batch-mixed"
+    rm -rf "$mixed"
+    status=0
+    "$bin" --batch denoise "$mixed" "$root/build/testmix/mix3.wav" \
+        "$root/build/test-batch-bogus.wav" > /dev/null 2>&1 || status=$?
+    check "batch exits non-zero when a file fails" 1 "$status"
+    check "batch still writes the good file" 1 "$(ls "$mixed"/*.wav 2>/dev/null | wc -l)"
+fi
+
 # Mixer: solo must isolate a stem sample-for-sample, mute-all must be silence.
 stemsdir="$root/build/testmix/mix3_stems"
 if [ -d "$stemsdir" ]; then

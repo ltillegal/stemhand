@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/batchrunner.h"
+
 #include <QString>
 #include <QStringList>
 #include <QUrl>
@@ -27,6 +29,18 @@ struct SeparateRequest {
 
 // Headless four-stem separation path.
 int runSeparate(const SeparateRequest &request);
+
+struct BatchRequest {
+    BatchOperation operation = BatchOperation::Denoise;
+    QStringList inputs;
+    QString outputDir;
+    QString modelRef;
+    QString storeRoot;
+    int threads = 0;
+};
+
+// Applies one operation to many files, sharing the model between them.
+int runBatch(const BatchRequest &request);
 
 struct MixRequest {
     QString stemsDir;

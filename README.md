@@ -56,6 +56,16 @@ Target platform is macOS on Apple Silicon; development happens on Linux.
 - Сверка с независимым Python-референсом: расхождение ровно 1 отсчёт PCM16
   (3·10⁻⁵), SI-SNR 48–81 дБ по стемам.
 
+**Пакетная обработка:**
+
+- `stemhand --batch denoise|separate <outdir> <file> [file...]` — очередь файлов,
+  модель загружается один раз.
+- Ошибка на одном файле не останавливает очередь: он помечается как failed,
+  остальные обрабатываются, код возврата 1.
+- В приложении — кнопка **Batch…**: выбрать несколько файлов, переключить
+  Denoise/Stems, **Start**. Каждая строка показывает состояние: pending,
+  running, ok с временем или текст ошибки.
+
 **Обновление моделей по сети:**
 
 - `stemhand --update <index-url>` — проверяет индекс, ставит недостающее.
@@ -152,6 +162,8 @@ ONNX Runtime необязателен при конфигурации: без н
 ./build/stemhand --separate song.mp3 stems/
 ./build/stemhand --mix stems/ mix.wav --solo vocals --gain vocals=3
 ./build/stemhand --mix stems/ mix.wav --mute drums
+./build/stemhand --batch denoise out/ speech1.wav speech2.wav
+./build/stemhand --batch separate stems/ track1.mp3 track2.mp3
 ./build/stemhand --scan --json
 ```
 
@@ -269,6 +281,16 @@ Linux.
 - Cross-checked against an independent Python reference: the difference is
   exactly 1 PCM16 sample (3·10⁻⁵), SI-SNR 48–81 dB per stem.
 
+**Batch processing:**
+
+- `stemhand --batch denoise|separate <outdir> <file> [file...]` — a queue of
+  files with the model loaded once.
+- One failing file does not stop the queue: it is marked failed, the rest are
+  processed, and the exit code is 1.
+- In the app — the **Batch…** button: pick several files, switch Denoise/Stems,
+  press **Start**. Each row reports pending, running, ok with a timing, or the
+  error text.
+
 **Model updates over the network:**
 
 - `stemhand --update <index-url>` — reads the index and installs what is
@@ -368,6 +390,8 @@ more than the arithmetic, so one thread is the default.
 ./build/stemhand --separate song.mp3 stems/
 ./build/stemhand --mix stems/ mix.wav --solo vocals --gain vocals=3
 ./build/stemhand --mix stems/ mix.wav --mute drums
+./build/stemhand --batch denoise out/ speech1.wav speech2.wav
+./build/stemhand --batch separate stems/ track1.mp3 track2.mp3
 ./build/stemhand --scan --json
 ```
 

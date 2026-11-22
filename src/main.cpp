@@ -1,4 +1,5 @@
 #include "audiofile.h"
+#include "batchcontroller.h"
 #include "cli.h"
 #include "denoisecontroller.h"
 #include "engine/stemplayer.h"
@@ -100,6 +101,10 @@ int main(int argc, char *argv[])
     QString separateOut;
     QString mixDir;
     QString mixOut;
+    QString batchOperation;
+    QString batchOutput;
+    QStringList batchFiles;
+    bool collectingBatch = false;
     QStringList muted;
     QStringList soloed;
     QList<QPair<QString, double>> gains;
@@ -113,7 +118,23 @@ int main(int argc, char *argv[])
 
     for (int i = 1; i < raw.size(); ++i) {
         const QString &arg = raw.at(i);
-        if (arg == QLatin1String("--scan")) {
+
+        // `--batch` takes an operation, an output directory, then a plain list
+        // of files; anything starting with a dash ends that list.
+        if (arg.startsWith(QLatin1Char('-')) && arg != QLatin1String("--batch"))
+            collectingBatch = false;
+
+        if (arg == QLatin1String("--batch")) {
+            if (i + 2 >= raw.size()) {
+                std::fprintf(stderr,
+                             "usage: stemhand --batch <denoise|separate> <outdir> <file> "
+                             "[file...]\n");
+                return 64;
+            }
+            batchOperation = raw.at(++i);
+            batchOutput = raw.at(++i);
+            collectingBatch = true;
+        } else if (arg == QLatin1String("--scan")) {
             scan = true;
         } else if (arg == QLatin1String("--json")) {
             asJson = true;
@@ -159,23 +180,33 @@ int main(int argc, char *argv[])
         } else if (arg == QLatin1String("--help") || arg == QLatin1String("-h")) {
             std::printf(
                 "stemhand %s\n\n"
-                "  stemhand [file]            open the app\n"
-                "  stemhand --scan [--json]   list the model store, exit 1 if a model is broken\n"
-                "  stemhand --denoise <in> <out> [--model <id|dir>] [--threads N]\n"
+                "  stemhand [file]                    open the app\n"
+                "  stemhand --scan [--json]           list the model store; exit 1 if broken\n"
+                "  stemhand --denoise <in> <out>      clean up speech (GTCRN)\n"
+                "  stemhand --separate <in> <outdir>  four stems (htdemucs)\n"
+                "  stemhand --batch <denoise|separate> <outdir> <file> [file...]\n"
+                "  stemhand --mix <stems-dir> <out.wav> [--mute <stem>] [--solo <stem>]\n"
+                "                                     [--gain <stem>=<db>]\n"
                 "  stemhand --update <index-url> [--check]\n"
                 "  stemhand --prefer <id>@<version> | --release <id> | --versions\n"
-                "  stemhand --root <dir>      use another model store\n",
+                "\n"
+                "  --model <id|dir>   pick a model explicitly\n"
+                "  --threads N        override the thread count\n"
+                "  --root <dir>       use another model store\n",
                 STEMHAND_VERSION);
             return 0;
         } else if (!arg.startsWith(QLatin1Char('-'))) {
-            openPath = arg;
+            if (collectingBatch)
+                batchFiles.append(arg);
+            else
+                openPath = arg;
         }
     }
 
     // Scan mode has to work from a terminal and from agents with no display,
     // so it never constructs a GUI application (and never touches the session).
     const bool headless = scan || !denoiseIn.isEmpty() || !separateIn.isEmpty()
-        || !mixDir.isEmpty()
+        || !mixDir.isEmpty() || !batchFiles.isEmpty()
         || !updateIndex.isEmpty()
         || !preferRef.isEmpty() || !releaseId.isEmpty() || listVersions;
 
@@ -204,6 +235,21 @@ int main(int argc, char *argv[])
             request.storeRoot = root;
             request.threads = threads;
             return runSeparate(request);
+        }
+
+        if (!batchFiles.isEmpty()) {
+            BatchRequest request;
+            if (!BatchRunner::operationFromName(batchOperation, &request.operation)) {
+                std::fprintf(stderr, "unknown batch operation \"%s\": use denoise or separate\n",
+                             qPrintable(batchOperation));
+                return 64;
+            }
+            request.inputs = batchFiles;
+            request.outputDir = batchOutput;
+            request.modelRef = modelRef;
+            request.storeRoot = root;
+            request.threads = threads;
+            return runBatch(request);
         }
 
         if (!mixDir.isEmpty()) {
@@ -270,6 +316,7 @@ int main(int argc, char *argv[])
     DenoiseController denoise(&store);
     UpdateController updates(&store);
     SeparateController separate(&store);
+    BatchController batch(&store);
     StemPlayer player;
     QStringList loadedStemPaths;
     QObject::connect(&separate, &SeparateController::stemsChanged, &player, [&] {
@@ -305,6 +352,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("denoise"), &denoise);
     engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
     engine.rootContext()->setContextProperty(QStringLiteral("separate"), &separate);
+    engine.rootContext()->setContextProperty(QStringLiteral("batch"), &batch);
     engine.rootContext()->setContextProperty(QStringLiteral("player"), &player);
     engine.rootContext()->setContextProperty(QStringLiteral("appVersion"),
                                              QStringLiteral(STEMHAND_VERSION));

@@ -69,6 +69,17 @@ ApplicationWindow {
     }
 
     FileDialog {
+        id: batchDialog
+        title: qsTr("Add files to the batch")
+        fileMode: FileDialog.OpenFiles
+        nameFilters: [
+            qsTr("Audio and video (*.wav *.flac *.mp3 *.aif *.aiff *.m4a *.ogg *.opus *.mp4 *.mkv *.mov)"),
+            qsTr("All files (*)")
+        ]
+        onAccepted: batch.addFiles(selectedFiles)
+    }
+
+    FileDialog {
         id: exportDialog
         title: qsTr("Export the mix")
         fileMode: FileDialog.SaveFile
@@ -157,6 +168,12 @@ ApplicationWindow {
                     ToolTip.text: !denoise.hasVoiceModel
                                   ? qsTr("No voice model installed — run scripts/install-gtcrn.sh")
                                   : qsTr("Waiting for the audio to load")
+                }
+
+                Button {
+                    text: qsTr("Batch…")
+                    flat: true
+                    onClicked: batchDialog.open()
                 }
 
                 Button {
@@ -408,6 +425,115 @@ ApplicationWindow {
 
                 Rectangle {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: visible ? 132 : 0
+                    visible: batch.jobs.length > 0
+                    color: "transparent"
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 26
+                        anchors.rightMargin: 26
+                        anchors.topMargin: 6
+                        anchors.bottomMargin: 8
+                        spacing: 4
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+
+                            Text {
+                                text: qsTr("BATCH")
+                                color: pal.dim
+                                font.pixelSize: 9
+                                font.letterSpacing: 1.6
+                            }
+
+                            Repeater {
+                                model: [
+                                    { key: "denoise", label: qsTr("Denoise") },
+                                    { key: "separate", label: qsTr("Stems") }
+                                ]
+
+                                Rectangle {
+                                    width: 62
+                                    height: 18
+                                    radius: 3
+                                    color: batch.operation === modelData.key ? pal.accent : "transparent"
+                                    border.width: 1
+                                    border.color: batch.operation === modelData.key ? pal.accent : pal.line
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData.label
+                                        color: batch.operation === modelData.key ? "#0a0b0e" : pal.dim
+                                        font.pixelSize: 9
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: batch.operation = modelData.key
+                                    }
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Button {
+                                text: qsTr("Start")
+                                flat: true
+                                font.pixelSize: 11
+                                highlighted: true
+                                enabled: !batch.busy && batch.hasModel
+                                onClicked: batch.start()
+                            }
+
+                            Button {
+                                text: batch.busy ? qsTr("Cancel") : qsTr("Clear")
+                                flat: true
+                                font.pixelSize: 11
+                                onClicked: batch.busy ? batch.cancel() : batch.clear()
+                            }
+                        }
+
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            model: batch.jobs
+                            spacing: 3
+
+                            delegate: RowLayout {
+                                width: ListView.view.width
+                                spacing: 8
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.name
+                                    color: modelData.status === "failed" ? pal.bad : pal.text
+                                    font.pixelSize: 10
+                                    elide: Text.ElideMiddle
+                                }
+
+                                Text {
+                                    text: modelData.status === "ok"
+                                          ? (modelData.detail || "ok")
+                                          : (modelData.status === "failed"
+                                             ? (modelData.detail || "failed")
+                                             : modelData.status)
+                                    color: modelData.status === "ok" ? pal.ok
+                                         : (modelData.status === "failed" ? pal.bad
+                                         : (modelData.status === "running" ? pal.accent : pal.dim))
+                                    font.pixelSize: 9
+                                    elide: Text.ElideRight
+                                    Layout.maximumWidth: 320
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
                     Layout.preferredHeight: visible ? 24 + separate.stems.length * 26 + 14 : 0
                     visible: separate.stems.length > 0
                     color: "transparent"
@@ -547,7 +673,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.preferredHeight: visible ? 26 : 0
                     visible: denoise.message.length > 0 || updates.message.length > 0
-                             || separate.message.length > 0
+                             || separate.message.length > 0 || batch.message.length > 0
                     color: (denoise.busy || updates.busy || separate.busy) ? "#1b1a10" : "#0f1a17"
 
                     Text {
@@ -556,7 +682,8 @@ ApplicationWindow {
                         anchors.rightMargin: 26
                         verticalAlignment: Text.AlignVCenter
                         text: denoise.message.length > 0 ? denoise.message
-                              : (separate.message.length > 0 ? separate.message : updates.message)
+                              : (separate.message.length > 0 ? separate.message
+                              : (batch.message.length > 0 ? batch.message : updates.message))
                         color: (denoise.busy || updates.busy || separate.busy) ? pal.warn : pal.ok
                         font.pixelSize: 11
                         elide: Text.ElideRight
@@ -567,8 +694,8 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.preferredHeight: visible ? 30 : 0
                     visible: denoise.error.length > 0 || updates.error.length > 0
-                              || separate.error.length > 0 || audio.error.length > 0
-                              || store.lastError.length > 0
+                              || separate.error.length > 0 || batch.error.length > 0
+                              || audio.error.length > 0 || store.lastError.length > 0
                     color: "#2a1416"
 
                     Text {
@@ -578,8 +705,9 @@ ApplicationWindow {
                         verticalAlignment: Text.AlignVCenter
                         text: denoise.error.length > 0 ? denoise.error
                               : (separate.error.length > 0 ? separate.error
+                              : (batch.error.length > 0 ? batch.error
                               : (updates.error.length > 0 ? updates.error
-                              : (audio.error.length > 0 ? audio.error : store.lastError)))
+                              : (audio.error.length > 0 ? audio.error : store.lastError))))
                         color: pal.bad
                         font.pixelSize: 11
                         elide: Text.ElideRight

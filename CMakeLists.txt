@@ -65,6 +65,7 @@ set(STEMHAND_ENGINE_SOURCES
     src/engine/fft.cpp
     src/engine/gtcrn.cpp
     src/engine/htdemucs.cpp
+    src/engine/batchrunner.cpp
     src/engine/wavwriter.cpp
     src/engine/wavreader.cpp
     src/engine/stemmixer.cpp
@@ -94,6 +95,7 @@ qt_add_executable(stemhand
     src/denoisecontroller.cpp
     src/updatecontroller.cpp
     src/separatecontroller.cpp
+    src/batchcontroller.cpp
     src/registry.cpp
     ${STEMHAND_ENGINE_SOURCES}
 )
@@ -155,12 +157,14 @@ if(Qt6Test_FOUND)
         src/modelstore.cpp
         src/denoisecontroller.cpp
         src/separatecontroller.cpp
+        src/batchcontroller.cpp
         src/updatecontroller.cpp
         src/registry.cpp
         src/engine/audioio.cpp
         src/engine/fft.cpp
         src/engine/gtcrn.cpp
         src/engine/htdemucs.cpp
+        src/engine/batchrunner.cpp
         src/engine/wavwriter.cpp
         src/engine/wavreader.cpp
         src/engine/stemmixer.cpp

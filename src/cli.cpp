@@ -2,6 +2,7 @@
 
 #include "engine/audioio.h"
 #include "engine/gtcrn.h"
+#include "engine/batchrunner.h"
 #include "engine/htdemucs.h"
 #include "engine/stemmixer.h"
 #include "manifest.h"
@@ -229,6 +230,95 @@ int runSeparate(const SeparateRequest &request)
                     qPrintable(stem));
     }
     return 0;
+}
+
+int runBatch(const BatchRequest &request)
+{
+    if (request.inputs.isEmpty() || request.outputDir.isEmpty()) {
+        std::fprintf(stderr, "stemhand --batch needs an output directory and at least one file\n");
+        return 64;
+    }
+
+    QStringList inputs;
+    for (const QString &input : request.inputs) {
+        if (!QFileInfo::exists(input)) {
+            std::fprintf(stderr, "skipping missing input: %s\n", qPrintable(input));
+            continue;
+        }
+        inputs.append(input);
+    }
+    if (inputs.isEmpty()) {
+        std::fprintf(stderr, "nothing to do: none of the inputs exist\n");
+        return 66;
+    }
+
+    const QString driver = request.operation == BatchOperation::Denoise
+        ? QStringLiteral("gtcrn")
+        : QStringLiteral("htdemucs");
+
+    ResolvedModel model;
+    QString error;
+    if (!resolveModel(request.modelRef, request.storeRoot, driver, &model, &error)) {
+        std::fprintf(stderr, "%s\n", qPrintable(error));
+        return 1;
+    }
+
+    // Denoising does not benefit from threads; separation roughly halves its
+    // time per doubling until the physical cores run out.
+    const int threads = request.threads > 0
+        ? request.threads
+        : (request.operation == BatchOperation::Denoise
+               ? 1
+               : std::max(1, QThread::idealThreadCount() / 2));
+
+    BatchRunner runner(request.operation);
+    if (!runner.load(model.weightsPath, threads, &error)) {
+        std::fprintf(stderr, "%s\n", qPrintable(error));
+        return 1;
+    }
+
+    std::printf("operation %s\n", qPrintable(BatchRunner::operationName(request.operation)));
+    std::printf("model     %s %s\n", qPrintable(model.manifest.id),
+                qPrintable(model.manifest.version));
+    std::printf("output    %s\n", qPrintable(request.outputDir));
+    std::printf("files     %d\n\n", static_cast<int>(inputs.size()));
+
+    QVector<BatchResult> results;
+    const QStringList batchInputs = inputs;
+    const QString outputDirectory = request.outputDir;
+
+    const bool completed = runner.run(
+        batchInputs, outputDirectory, &results,
+        [&batchInputs](int index, int total) {
+            std::printf("[%d/%d] %s\n", index + 1, total,
+                        qPrintable(QFileInfo(batchInputs.at(index)).fileName()));
+            std::fflush(stdout);
+        },
+        {}, nullptr);
+
+    int failed = 0;
+    double wall = 0.0;
+    double audio = 0.0;
+    for (const BatchResult &result : results) {
+        if (result.ok) {
+            wall += result.wallSeconds;
+            audio += result.audioSeconds;
+            std::printf("  ok    %s  %.1fs → %s (%.1fx)\n",
+                        qPrintable(QFileInfo(result.input).fileName()), result.wallSeconds,
+                        qPrintable(QFileInfo(result.output).fileName()),
+                        result.wallSeconds > 0 ? result.audioSeconds / result.wallSeconds : 0.0);
+        } else {
+            ++failed;
+            std::printf("  FAIL  %s  %s\n", qPrintable(QFileInfo(result.input).fileName()),
+                        qPrintable(result.error));
+        }
+    }
+
+    std::printf("\n%d ok, %d failed", static_cast<int>(results.size()) - failed, failed);
+    if (wall > 0.0)
+        std::printf(", %.1fs of work for %.1fs of audio (%.1fx)", wall, audio, audio / wall);
+    std::printf("\n");
+    return (completed && failed == 0) ? 0 : 1;
 }
 
 int runMix(const MixRequest &request)

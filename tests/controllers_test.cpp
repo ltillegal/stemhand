@@ -1,3 +1,4 @@
+#include "batchcontroller.h"
 #include "denoisecontroller.h"
 #include "engine/stemmixer.h"
 #include "engine/stemplayer.h"
@@ -27,6 +28,7 @@ private slots:
     void cancelsSeparation();
     void cancelsDenoising();
     void acceptsBarePathFromQml();
+    void runsBatchDenoise();
     void playsStems();
     void remembersMixState();
     void installsFromRegistry();
@@ -222,6 +224,59 @@ void ControllersTest::acceptsBarePathFromQml()
     QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 120000);
     QCOMPARE(errors.count(), 0);
     QCOMPARE(finished.count(), 1);
+}
+
+void ControllersTest::runsBatchDenoise()
+{
+    const QString storeRoot = qEnvironmentVariable("STEMHAND_TEST_MODELS");
+    if (storeRoot.isEmpty())
+        QSKIP("set STEMHAND_TEST_MODELS to run this test");
+    if (!QDir(storeRoot).exists())
+        QSKIP("model fixtures are not present in this checkout");
+
+    ModelStore store;
+    store.setRoot(storeRoot);
+    store.rescan();
+
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const int rate = 44100;
+    const qint64 frames = rate / 2;
+    QStringList inputs;
+    for (const QString &name : {"one", "two"}) {
+        const QString path = directory.path() + QLatin1Char('/') + name + QStringLiteral(".wav");
+        WavWriter writer;
+        QString error;
+        QVERIFY2(writer.open(path, 2, rate, frames, &error), qPrintable(error));
+        QVector<float> buffer(static_cast<int>(frames) * 2);
+        for (int i = 0; i < buffer.size(); ++i)
+            buffer[i] = 0.2f * std::sin(i * 0.01f);
+        QVERIFY2(writer.write(buffer.constData(), frames, &error), qPrintable(error));
+        writer.close();
+        inputs.append(path);
+    }
+
+    BatchController controller(&store);
+    controller.setOperation(QStringLiteral("denoise"));
+    QVERIFY(controller.hasModel());
+
+    controller.addFiles({QUrl::fromLocalFile(inputs.at(0)), QUrl::fromLocalFile(inputs.at(1))});
+    QCOMPARE(controller.jobs().size(), 2);
+
+    controller.start();
+    QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 120000);
+
+    const QVariantList jobs = controller.jobs();
+    QCOMPARE(jobs.size(), 2);
+    for (const QVariant &item : jobs) {
+        const QVariantMap job = item.toMap();
+        QCOMPARE(job.value(QStringLiteral("status")).toString(), QStringLiteral("ok"));
+    }
+
+    const QDir output(directory.path() + QStringLiteral("/stemhand denoised"));
+    QVERIFY(output.exists());
+    QCOMPARE(output.entryList({QStringLiteral("*.wav")}, QDir::Files).size(), 2);
 }
 
 void ControllersTest::playsStems()

@@ -23,6 +23,19 @@ QStringList toolDirectories()
 
 } // namespace
 
+namespace {
+
+// ffmpeg writes several lines; a one-line status field wants the first one.
+QString firstLine(const QByteArray &output)
+{
+    const QString text = QString::fromUtf8(output).trimmed();
+    const qsizetype newline = text.indexOf(QLatin1Char('\n'));
+    const QString line = newline < 0 ? text : text.left(newline);
+    return line.trimmed().left(200);
+}
+
+} // namespace
+
 QString findTool(const QString &name)
 {
     const QString fromPath = QStandardPaths::findExecutable(name);
@@ -75,7 +88,7 @@ bool decodeToChannels(const QString &path, int sampleRate, int channels,
     if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
         if (error) {
             *error = QStringLiteral("ffmpeg could not decode the input: %1")
-                         .arg(QString::fromUtf8(process.readAllStandardError()).trimmed().left(300));
+                         .arg(firstLine(process.readAllStandardError()));
         }
         return false;
     }
@@ -128,7 +141,7 @@ bool writeWav(const QString &path, const QVector<float> &samples, int sampleRate
     if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
         if (error)
             *error = QStringLiteral("ffmpeg could not write the output: %1")
-                         .arg(QString::fromUtf8(process.readAllStandardError()).trimmed().left(300));
+                         .arg(firstLine(process.readAllStandardError()));
         return false;
     }
     return true;
