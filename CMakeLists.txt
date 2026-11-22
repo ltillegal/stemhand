@@ -12,7 +12,9 @@ if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "" FORCE)
 endif()
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Network Concurrent Multimedia)
+# 6.4 is what Ubuntu 24.04 ships; nothing here needs newer API. The
+# development machine and the macOS build use 6.12.
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Quick QuickControls2 Network Concurrent Multimedia)
 qt_standard_project_setup()
 
 find_package(PkgConfig REQUIRED)
