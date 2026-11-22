@@ -34,14 +34,15 @@ ONNX Runtime лежит внутри бандла.
 ## macOS (Apple Silicon)
 
 ```bash
-tar xzf stemhand-*-macos-arm64.tar.gz
-xattr -dr com.apple.quarantine stemhand.app   # снимает карантин после скачивания
-open stemhand.app
+sudo installer -pkg stemhand-*-macos-arm64.pkg -target /
+open /Applications/stemhand.app
 ```
 
-Подпись ad-hoc: приложение не нотаризовано, поэтому macOS ругается на
-«неизвестного разработчика» — либо команда `xattr` выше, либо правый клик →
-Open. Собрать самому тоже можно:
+Или двойным кликом по `.pkg`. Подпись ad-hoc: пакет не нотаризован, поэтому
+Gatekeeper может отказать — тогда правый клик → Open, либо
+`xattr -dr com.apple.quarantine stemhand-*.pkg` и снова открыть.
+
+Собрать самому тоже можно:
 
 ```bash
 brew install qt onnxruntime libsodium ffmpeg pkg-config cmake

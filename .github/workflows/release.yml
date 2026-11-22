@@ -62,18 +62,12 @@ jobs:
         run: ./scripts/build-macos.sh
 
       - name: Package
-        shell: bash
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          [ "$version" = "$GITHUB_REF_NAME" ] && version="$(./build-macos/stemhand.app/Contents/MacOS/stemhand --version | awk '{print $2}')"
-          # tar, not zip: it keeps the bundle's symlinks and permission bits
-          # intact, and matches the Linux asset.
-          tar -czf "stemhand-$version-macos-arm64.tar.gz" -C build-macos stemhand.app
+        run: ./scripts/package-macos.sh
 
       - uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: stemhand-*-macos-arm64.tar.gz
+          path: build-macos/stemhand-*-macos-arm64.pkg
 
   publish:
     # Only tags publish; a manual run just proves the build works.
