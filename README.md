@@ -8,6 +8,9 @@ Local stem separation and voice cleanup: four stems out of a finished mix, drum
 parts, speech denoising — all on your own machine, nothing uploaded.
 Target platform is macOS on Apple Silicon; development happens on Linux.
 
+**Download:** [Releases](https://github.com/ltillegal/stemhand/releases) — a
+portable Linux x86_64 build; macOS is built from source.
+
 ![Stemhand](docs/screenshot.png)
 
 ---
@@ -62,6 +65,8 @@ Target platform is macOS on Apple Silicon; development happens on Linux.
   модель загружается один раз.
 - Ошибка на одном файле не останавливает очередь: он помечается как failed,
   остальные обрабатываются, код возврата 1.
+- Кнопка **Export…** сохраняет открытый файл — результат денойзинга, стем или
+  микс — в WAV/FLAC/MP3 по выбору, формат определяется расширением.
 - В приложении — кнопка **Batch…**: выбрать несколько файлов, переключить
   Denoise/Stems, **Start**. Несколько файлов в командной строке (`stemhand a.wav
   b.wav c.wav`) тоже попадают в очередь. Каждая строка показывает состояние: pending,
@@ -288,6 +293,8 @@ Linux.
   files with the model loaded once.
 - One failing file does not stop the queue: it is marked failed, the rest are
   processed, and the exit code is 1.
+- The **Export…** button saves the opened file — a denoised result, a stem, a
+  mix — as WAV/FLAC/MP3, the format taken from the extension.
 - In the app — the **Batch…** button: pick several files, switch Denoise/Stems,
   press **Start**. Several files on the command line (`stemhand a.wav b.wav
   c.wav`) also land in the queue. Each row reports pending, running, ok with a timing, or the
