@@ -44,6 +44,7 @@ public:
     Q_INVOKABLE void clear();
     Q_INVOKABLE void start();
     Q_INVOKABLE void cancel();
+    Q_INVOKABLE void openOutputFolder() const;
 
 signals:
     void busyChanged();
@@ -69,6 +70,7 @@ private:
     QList<Job> m_jobs;
     QVariantList m_jobsVariant;
     QString m_operation = QStringLiteral("denoise");
+    QString m_outputDirectory;
     QString m_message;
     QString m_error;
     bool m_busy = false;

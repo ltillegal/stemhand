@@ -69,6 +69,17 @@ ApplicationWindow {
     }
 
     FileDialog {
+        id: exportFileDialog
+        title: qsTr("Export the opened audio")
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "wav"
+        nameFilters: [qsTr("WAV (*.wav)"), qsTr("FLAC (*.flac)"), qsTr("MP3 (*.mp3)"),
+                      qsTr("All files (*)")]
+        currentFile: exporter.suggestedName.length > 0 ? "file://" + exporter.suggestedName : ""
+        onAccepted: exporter.exportFile(selectedFile)
+    }
+
+    FileDialog {
         id: batchDialog
         title: qsTr("Add files to the batch")
         fileMode: FileDialog.OpenFiles
@@ -168,6 +179,14 @@ ApplicationWindow {
                     ToolTip.text: !denoise.hasVoiceModel
                                   ? qsTr("No voice model installed — run scripts/install-gtcrn.sh")
                                   : qsTr("Waiting for the audio to load")
+                }
+
+                Button {
+                    text: qsTr("Export…")
+                    flat: true
+                    visible: audio.hasAudio
+                    enabled: !exporter.busy
+                    onClicked: exportFileDialog.open()
                 }
 
                 Button {
@@ -488,6 +507,13 @@ ApplicationWindow {
                             }
 
                             Button {
+                                text: qsTr("Folder")
+                                flat: true
+                                font.pixelSize: 11
+                                onClicked: batch.openOutputFolder()
+                            }
+
+                            Button {
                                 text: batch.busy ? qsTr("Cancel") : qsTr("Clear")
                                 flat: true
                                 font.pixelSize: 11
@@ -674,6 +700,7 @@ ApplicationWindow {
                     Layout.preferredHeight: visible ? 26 : 0
                     visible: denoise.message.length > 0 || updates.message.length > 0
                              || separate.message.length > 0 || batch.message.length > 0
+                             || exporter.message.length > 0
                     color: (denoise.busy || updates.busy || separate.busy) ? "#1b1a10" : "#0f1a17"
 
                     Text {
@@ -683,8 +710,10 @@ ApplicationWindow {
                         verticalAlignment: Text.AlignVCenter
                         text: denoise.message.length > 0 ? denoise.message
                               : (separate.message.length > 0 ? separate.message
-                              : (batch.message.length > 0 ? batch.message : updates.message))
-                        color: (denoise.busy || updates.busy || separate.busy) ? pal.warn : pal.ok
+                              : (batch.message.length > 0 ? batch.message
+                              : (exporter.message.length > 0 ? exporter.message : updates.message)))
+                        color: (denoise.busy || updates.busy || separate.busy || batch.busy
+                                || exporter.busy) ? pal.warn : pal.ok
                         font.pixelSize: 11
                         elide: Text.ElideRight
                     }
@@ -695,6 +724,7 @@ ApplicationWindow {
                     Layout.preferredHeight: visible ? 30 : 0
                     visible: denoise.error.length > 0 || updates.error.length > 0
                               || separate.error.length > 0 || batch.error.length > 0
+                              || exporter.error.length > 0
                               || audio.error.length > 0 || store.lastError.length > 0
                     color: "#2a1416"
 
@@ -706,8 +736,9 @@ ApplicationWindow {
                         text: denoise.error.length > 0 ? denoise.error
                               : (separate.error.length > 0 ? separate.error
                               : (batch.error.length > 0 ? batch.error
+                              : (exporter.error.length > 0 ? exporter.error
                               : (updates.error.length > 0 ? updates.error
-                              : (audio.error.length > 0 ? audio.error : store.lastError))))
+                              : (audio.error.length > 0 ? audio.error : store.lastError)))))
                         color: pal.bad
                         font.pixelSize: 11
                         elide: Text.ElideRight

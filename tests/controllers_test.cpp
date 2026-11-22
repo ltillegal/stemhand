@@ -1,5 +1,6 @@
 #include "batchcontroller.h"
 #include "denoisecontroller.h"
+#include "exportcontroller.h"
 #include "engine/stemmixer.h"
 #include "engine/stemplayer.h"
 #include "engine/wavreader.h"
@@ -29,6 +30,7 @@ private slots:
     void cancelsDenoising();
     void acceptsBarePathFromQml();
     void runsBatchDenoise();
+    void exportsAudio();
     void playsStems();
     void remembersMixState();
     void installsFromRegistry();
@@ -277,6 +279,37 @@ void ControllersTest::runsBatchDenoise()
     const QDir output(directory.path() + QStringLiteral("/stemhand denoised"));
     QVERIFY(output.exists());
     QCOMPARE(output.entryList({QStringLiteral("*.wav")}, QDir::Files).size(), 2);
+}
+
+void ControllersTest::exportsAudio()
+{
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+
+    const QString source = directory.path() + QStringLiteral("/tone.wav");
+    {
+        WavWriter writer;
+        QString error;
+        const qint64 frames = 8000;
+        QVERIFY2(writer.open(source, 2, 44100, frames, &error), qPrintable(error));
+        QVector<float> buffer(static_cast<int>(frames) * 2);
+        for (int i = 0; i < buffer.size(); ++i)
+            buffer[i] = 0.1f * std::sin(i * 0.02f);
+        QVERIFY2(writer.write(buffer.constData(), frames, &error), qPrintable(error));
+        writer.close();
+    }
+
+    ExportController controller;
+    controller.keepSource(QUrl::fromLocalFile(source));
+    QVERIFY(controller.suggestedName().endsWith(QStringLiteral("tone.wav")));
+
+    const QString target = directory.path() + QStringLiteral("/tone.flac");
+    controller.exportFile(QUrl::fromLocalFile(target));
+    QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 60000);
+
+    QVERIFY2(controller.error().isEmpty(), qPrintable(controller.error()));
+    QVERIFY(QFileInfo::exists(target));
+    QVERIFY(QFileInfo(target).size() > 1024);
 }
 
 void ControllersTest::playsStems()

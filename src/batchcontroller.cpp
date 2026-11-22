@@ -3,6 +3,7 @@
 #include "engine/batchrunner.h"
 #include "modelstore.h"
 
+#include <QDesktopServices>
 #include <QDir>
 
 #include <algorithm>
@@ -92,6 +93,13 @@ void BatchController::setError(const QString &error)
         return;
     m_error = error;
     emit errorChanged();
+}
+
+void BatchController::openOutputFolder() const
+{
+    if (m_outputDirectory.isEmpty())
+        return;
+    QDesktopServices::openUrl(QUrl::fromLocalFile(m_outputDirectory));
 }
 
 void BatchController::rebuildJobs()
@@ -187,6 +195,7 @@ void BatchController::start()
         QFileInfo(inputs.first()).absolutePath() + (denoise ? QStringLiteral("/stemhand denoised")
                                                             : QStringLiteral("/stemhand stems"));
     QDir().mkpath(outputDirectory);
+    m_outputDirectory = outputDirectory;
 
     for (Job &job : m_jobs) {
         if (job.status != QLatin1String("failed"))

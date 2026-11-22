@@ -96,6 +96,7 @@ qt_add_executable(stemhand
     src/updatecontroller.cpp
     src/separatecontroller.cpp
     src/batchcontroller.cpp
+    src/exportcontroller.cpp
     src/registry.cpp
     ${STEMHAND_ENGINE_SOURCES}
 )
@@ -158,6 +159,7 @@ if(Qt6Test_FOUND)
         src/denoisecontroller.cpp
         src/separatecontroller.cpp
         src/batchcontroller.cpp
+        src/exportcontroller.cpp
         src/updatecontroller.cpp
         src/registry.cpp
         src/engine/audioio.cpp

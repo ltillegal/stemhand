@@ -1,5 +1,6 @@
 #include "audiofile.h"
 #include "batchcontroller.h"
+#include "exportcontroller.h"
 #include "cli.h"
 #include "denoisecontroller.h"
 #include "engine/stemplayer.h"
@@ -317,6 +318,9 @@ int main(int argc, char *argv[])
     UpdateController updates(&store);
     SeparateController separate(&store);
     BatchController batch(&store);
+    ExportController exporter;
+    QObject::connect(&audio, &AudioFile::fileChanged, &exporter,
+                     [&audio, &exporter] { exporter.keepSource(audio.url()); });
     StemPlayer player;
     QStringList loadedStemPaths;
     QObject::connect(&separate, &SeparateController::stemsChanged, &player, [&] {
@@ -353,6 +357,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
     engine.rootContext()->setContextProperty(QStringLiteral("separate"), &separate);
     engine.rootContext()->setContextProperty(QStringLiteral("batch"), &batch);
+    engine.rootContext()->setContextProperty(QStringLiteral("exporter"), &exporter);
     engine.rootContext()->setContextProperty(QStringLiteral("player"), &player);
     engine.rootContext()->setContextProperty(QStringLiteral("appVersion"),
                                              QStringLiteral(STEMHAND_VERSION));
