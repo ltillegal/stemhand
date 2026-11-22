@@ -43,4 +43,5 @@ cp "$root/README.md" "$root/LICENSE" "$stage/"
 
 tarball="$out/stemhand-$version-linux-$arch.tar.gz"
 tar -czf "$tarball" -C "$out" "$(basename "$stage")"
+(cd "$out" && sha256sum "$(basename "$tarball")" > SHA256SUMS)
 echo "$tarball"

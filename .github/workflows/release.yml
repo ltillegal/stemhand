@@ -1,0 +1,96 @@
+name: release
+
+# Tag pushes build the release; the manual trigger is for testing the pipeline
+# without publishing (the publish job only runs on tags).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config libsodium-dev ffmpeg \
+            qt6-base-dev qt6-declarative-dev qt6-multimedia-dev \
+            libqt6svg6-dev libgl1-mesa-dev
+
+      - name: ONNX Runtime
+        run: ./scripts/fetch-onnxruntime.sh
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Tests
+        run: |
+          ./scripts/test.sh
+          cd build && ctest --output-on-failure
+
+      - name: Package
+        run: ./scripts/package-linux.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            build/stemhand-*.tar.gz
+            build/SHA256SUMS
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencies
+        run: brew install qt onnxruntime libsodium ffmpeg pkg-config cmake
+
+      - name: Build the app bundle
+        run: ./scripts/build-macos.sh
+
+      - name: Package
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          [ "$version" = "$GITHUB_REF_NAME" ] && version="$(./build-macos/stemhand.app/Contents/MacOS/stemhand --version | awk '{print $2}')"
+          cd build-macos
+          ditto -c -k --keepParent stemhand.app "../stemhand-$version-macos-arm64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: stemhand-*-macos-arm64.zip
+
+  publish:
+    # Only tags publish; a manual run just proves the build works.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, macos]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la dist
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Stemhand ${GITHUB_REF_NAME#v}" \
+            --notes-file docs/RELEASE_NOTES.md \
+          || gh release upload "$GITHUB_REF_NAME" dist/* --clobber
