@@ -49,7 +49,9 @@ jobs:
             build/SHA256SUMS
 
   macos:
-    runs-on: macos-14
+    # macos-14 is an Intel image and is deprecated; the project targets arm64,
+    # so the job must run on an Apple Silicon runner.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
