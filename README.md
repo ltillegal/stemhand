@@ -21,6 +21,9 @@ portable Linux x86_64 build; macOS is built from source.
 барабаны, голоса, денойзинг — всё на своей машине, без загрузок наружу.
 Целевая платформа — macOS на Apple Silicon (M1, Sequoia); разработка идёт на Linux.
 
+**Скачать:** [Releases](https://github.com/ltillegal/stemhand/releases) — готовый
+бинарник для Linux x86_64; macOS собирается из исходников.
+
 ### Что работает
 
 **Оболочка и доверие к моделям:**
