@@ -23,7 +23,8 @@ cd stemhand-*-linux-x86_64
 ```
 
 Внутри уже лежит `libonnxruntime.so` — системный ONNX Runtime не нужен. Нужен
-`ffmpeg` в `PATH` (декодирование и экспорт).
+`ffmpeg` в `PATH` (декодирование и экспорт); на macOS то же самое, библиотека
+ONNX Runtime лежит внутри бандла.
 
 ```bash
 ./run.sh --batch denoise out/ *.wav
@@ -32,7 +33,15 @@ cd stemhand-*-linux-x86_64
 
 ## macOS (Apple Silicon)
 
-Готового `.app` в этом релизе нет — собирается из исходников:
+```bash
+tar xzf stemhand-*-macos-arm64.tar.gz
+xattr -dr com.apple.quarantine stemhand.app   # снимает карантин после скачивания
+open stemhand.app
+```
+
+Подпись ad-hoc: приложение не нотаризовано, поэтому macOS ругается на
+«неизвестного разработчика» — либо команда `xattr` выше, либо правый клик →
+Open. Собрать самому тоже можно:
 
 ```bash
 brew install qt onnxruntime libsodium ffmpeg pkg-config cmake
